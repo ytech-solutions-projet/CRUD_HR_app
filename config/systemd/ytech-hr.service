@@ -1,0 +1,30 @@
+[Unit]
+Description=Ytech HR Django Application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=hrapp
+Group=hrapp
+WorkingDirectory=/opt/ytech-hr/backend
+EnvironmentFile=/etc/ytech-hr/hr.env
+Environment=PYTHONUNBUFFERED=1
+RuntimeDirectory=ytech-hr
+RuntimeDirectoryMode=0750
+UMask=0007
+ExecStart=/opt/ytech-hr/.venv/bin/gunicorn --config /opt/ytech-hr/config/gunicorn/gunicorn.conf.py hr_core.wsgi:application
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=full
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

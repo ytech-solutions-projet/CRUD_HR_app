@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Suspend {{ employee.employee_code }} | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="delete-panel">
+    <p class="eyebrow">Safe Status Change</p>
+    <h2>Suspend {{ employee.first_name }} {{ employee.last_name }}?</h2>
+    <p>This keeps the employee record in the system and changes the status to suspended. No data will be deleted.</p>
+
+    {% if already_suspended %}
+    <article class="message">This employee is already suspended.</article>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="button-row">
+            {% if not already_suspended %}
+            <button type="submit" class="warning-button">Confirm suspend</button>
+            {% endif %}
+            <a href="{% url 'employee-detail' employee.pk %}" class="secondary-link">Back</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

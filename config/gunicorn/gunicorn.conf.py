@@ -1,0 +1,12 @@
+bind = "unix:/run/ytech-hr/gunicorn.sock"
+workers = 3
+worker_class = "sync"
+timeout = 60
+graceful_timeout = 30
+keepalive = 5
+umask = 0o007
+capture_output = True
+accesslog = "-"
+errorlog = "-"
+loglevel = "info"
+forwarded_allow_ips = "127.0.0.1"

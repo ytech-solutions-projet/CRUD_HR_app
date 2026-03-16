@@ -1,0 +1,282 @@
+openapi: 3.0.3
+info:
+  title: Ytech HR Internal API
+  version: 1.0.0
+  description: Internal CRUD API for employee management.
+servers:
+  - url: https://hr.ytech.local/api/v1
+paths:
+  /employees:
+    get:
+      summary: List or search employees
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Search by employee code, name, or email.
+        - in: query
+          name: department_id
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ACTIVE, ON_LEAVE, SUSPENDED, TERMINATED]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Employee list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Employee"
+    post:
+      summary: Create employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeCreate"
+      responses:
+        "201":
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "400":
+          description: Validation error
+        "403":
+          description: Forbidden
+  /employees/{employee_id}:
+    get:
+      summary: Get employee by ID
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "200":
+          description: Employee details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "404":
+          description: Not found
+    put:
+      summary: Replace employee
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeCreate"
+      responses:
+        "200":
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+    patch:
+      summary: Partially update employee
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeUpdate"
+      responses:
+        "200":
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+  /employees/{employee_id}/suspend:
+    post:
+      summary: Suspend employee
+      parameters:
+        - $ref: "#/components/parameters/EmployeeId"
+      responses:
+        "200":
+          description: Employee suspended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+  /departments:
+    get:
+      summary: List departments
+      responses:
+        "200":
+          description: Department list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+components:
+  parameters:
+    EmployeeId:
+      in: path
+      name: employee_id
+      required: true
+      schema:
+        type: integer
+  schemas:
+    Department:
+      type: object
+      required: [department_id, name]
+      properties:
+        department_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 100
+    Employee:
+      type: object
+      required:
+        - employee_id
+        - employee_code
+        - first_name
+        - last_name
+        - email
+        - department_id
+        - position_title
+        - salary
+        - hire_date
+        - employment_status
+      properties:
+        employee_id:
+          type: integer
+        employee_code:
+          type: string
+          maxLength: 20
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        department_id:
+          type: integer
+        position_title:
+          type: string
+          maxLength: 120
+        salary:
+          type: number
+          format: double
+          minimum: 0
+        hire_date:
+          type: string
+          format: date
+        employment_status:
+          type: string
+          enum: [ACTIVE, ON_LEAVE, SUSPENDED, TERMINATED]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EmployeeCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - employee_code
+        - first_name
+        - last_name
+        - email
+        - department_id
+        - position_title
+        - salary
+        - hire_date
+        - employment_status
+      properties:
+        employee_code:
+          type: string
+          maxLength: 20
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        department_id:
+          type: integer
+        position_title:
+          type: string
+          maxLength: 120
+        salary:
+          type: number
+          format: double
+          minimum: 0
+        hire_date:
+          type: string
+          format: date
+        employment_status:
+          type: string
+          enum: [ACTIVE, ON_LEAVE, SUSPENDED, TERMINATED]
+    EmployeeUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        department_id:
+          type: integer
+        position_title:
+          type: string
+          maxLength: 120
+        salary:
+          type: number
+          format: double
+          minimum: 0
+        hire_date:
+          type: string
+          format: date
+        employment_status:
+          type: string
+          enum: [ACTIVE, ON_LEAVE, SUSPENDED, TERMINATED]

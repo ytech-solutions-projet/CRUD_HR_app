@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.first_name }} {{ employee.last_name }} | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="detail-panel">
+    <div class="detail-header">
+        <div>
+            <p class="eyebrow">Employee Profile</p>
+            <h2>{{ employee.first_name }} {{ employee.last_name }}</h2>
+            <p>{{ employee.position_title }} in {{ employee.department.name }}</p>
+        </div>
+        <div class="button-row">
+            <a href="{% url 'employee-update' employee.pk %}" class="button-link">Edit</a>
+            {% if can_suspend and employee.employment_status != "SUSPENDED" %}
+            <a href="{% url 'employee-suspend' employee.pk %}" class="warning-link">Suspend</a>
+            {% endif %}
+            <a href="{% url 'employee-list' %}" class="secondary-link">Back</a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <article><strong>Employee ID</strong><span>{{ employee.employee_code }}</span></article>
+        <article><strong>Email</strong><span>{{ employee.email }}</span></article>
+        <article><strong>Department</strong><span>{{ employee.department.name }}</span></article>
+        <article><strong>Status</strong><span>{{ employee.get_employment_status_display }}</span></article>
+        <article><strong>Salary</strong><span>{{ employee.salary }}</span></article>
+        <article><strong>Hire Date</strong><span>{{ employee.hire_date }}</span></article>
+        <article><strong>Created</strong><span>{{ employee.created_at }}</span></article>
+        <article><strong>Last Updated</strong><span>{{ employee.updated_at }}</span></article>
+    </div>
+</section>
+{% endblock %}

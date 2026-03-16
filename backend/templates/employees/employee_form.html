@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit Employee{% else %}Add Employee{% endif %} | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="form-panel">
+    <div>
+        <p class="eyebrow">Employee Record</p>
+        <h2>{% if object %}Update employee{% else %}Add a new employee{% endif %}</h2>
+    </div>
+
+    <form method="post" class="stacked-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="form-grid">
+            {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <small class="error-text">{{ field.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="button-row">
+            <button type="submit">{% if object %}Save changes{% else %}Create employee{% endif %}</button>
+            <a href="{% url 'employee-list' %}" class="secondary-link">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Employees | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Protected HR Network</p>
+        <h2>Employee Directory</h2>
+        <p>Search, review, and maintain staff records without exposing the system to the public internet.</p>
+    </div>
+    <a href="{% url 'employee-create' %}" class="button-link">Add Employee</a>
+</section>
+
+<section class="stats-grid">
+    <article>
+        <span>Active</span>
+        <strong>{{ status_counts.active }}</strong>
+    </article>
+    <article>
+        <span>On Leave</span>
+        <strong>{{ status_counts.on_leave }}</strong>
+    </article>
+    <article>
+        <span>Suspended</span>
+        <strong>{{ status_counts.suspended }}</strong>
+    </article>
+    <article>
+        <span>Terminated</span>
+        <strong>{{ status_counts.terminated }}</strong>
+    </article>
+</section>
+
+<form method="get" class="search-panel">
+    <div class="search-grid">
+        <div>
+            <label for="{{ search_form.q.id_for_label }}">Search</label>
+            {{ search_form.q }}
+        </div>
+        <div>
+            <label for="{{ search_form.department.id_for_label }}">Department</label>
+            {{ search_form.department }}
+        </div>
+        <div>
+            <label for="{{ search_form.employment_status.id_for_label }}">Status</label>
+            {{ search_form.employment_status }}
+        </div>
+        <div class="search-actions">
+            <button type="submit">Filter</button>
+            <a href="{% url 'employee-list' %}" class="secondary-link">Reset</a>
+        </div>
+    </div>
+</form>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th>Position</th>
+                <th>Status</th>
+                <th>Hire Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>{{ employee.employee_code }}</td>
+                <td>
+                    <strong>{{ employee.first_name }} {{ employee.last_name }}</strong><br>
+                    <small>{{ employee.email }}</small>
+                </td>
+                <td>{{ employee.department.name }}</td>
+                <td>{{ employee.position_title }}</td>
+                <td><span class="status-badge {{ employee.employment_status|lower }}">{{ employee.get_employment_status_display }}</span></td>
+                <td>{{ employee.hire_date }}</td>
+                <td class="actions">
+                    <a href="{% url 'employee-detail' employee.pk %}">View</a>
+                    <a href="{% url 'employee-update' employee.pk %}">Edit</a>
+                    {% if can_suspend and employee.employment_status != "SUSPENDED" %}
+                    <a href="{% url 'employee-suspend' employee.pk %}" class="warning-link">Suspend</a>
+                    {% elif employee.employment_status == "SUSPENDED" %}
+                    <span class="muted-label">Suspended</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">No employees matched the current filters.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+{% if is_paginated %}
+<nav class="pagination-bar">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+</nav>
+{% endif %}
+{% endblock %}

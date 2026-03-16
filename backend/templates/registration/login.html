@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | Ytech HR</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="auth-shell">
+    <main class="auth-card">
+        <p class="eyebrow">Internal Access Only</p>
+        <h1>Ytech HR</h1>
+        <p class="subtitle">Use one of the seeded local accounts to explore the application.</p>
+
+        {% if form.errors %}
+        <article class="message error">Login failed. Check the username and password.</article>
+        {% endif %}
+
+        <form method="post" class="stacked-form">
+            {% csrf_token %}
+            <label for="id_username">Username</label>
+            {{ form.username }}
+
+            <label for="id_password">Password</label>
+            {{ form.password }}
+
+            <button type="submit">Sign in</button>
+        </form>
+
+        <section class="demo-credentials">
+            <strong>Demo accounts</strong>
+            <p><code>hradmin</code> / <code>ChangeMe123!</code></p>
+            <p><code>hruser</code> / <code>ChangeMe123!</code></p>
+            <p><code>itadmin</code> / <code>ChangeMe123!</code></p>
+        </section>
+    </main>
+</body>
+</html>
