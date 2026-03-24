@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="detail-panel">
+    <div class="detail-header">
+        <div>
+            <p class="eyebrow">Employee Self Service</p>
+            <h2>{{ employee.first_name }} {{ employee.last_name }}</h2>
+            <p>Sign-in email: {{ employee.email }}</p>
+        </div>
+        <div class="button-row">
+            <a href="{% url 'password-change' %}" class="button-link">Change Password</a>
+        </div>
+    </div>
+
+    <div class="detail-grid">
+        <article><strong>Employee ID</strong><span>{{ employee.employee_code }}</span></article>
+        <article><strong>Work Email</strong><span>{{ employee.email }}</span></article>
+        <article><strong>Department</strong><span>{{ employee.department.name }}</span></article>
+        <article><strong>Position</strong><span>{{ employee.position_title }}</span></article>
+        <article><strong>Status</strong><span>{{ employee.get_employment_status_display }}</span></article>
+        <article><strong>Hire Date</strong><span>{{ employee.hire_date }}</span></article>
+    </div>
+</section>
+{% endblock %}

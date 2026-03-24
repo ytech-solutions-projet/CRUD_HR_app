@@ -11,18 +11,18 @@
     <main class="auth-card">
         <p class="eyebrow">Internal Access Only</p>
         <h1>Ytech HR</h1>
-        <p class="subtitle">Use one of the seeded local accounts to explore the application.</p>
+        <p class="subtitle">HR staff can sign in with their username or work email. Employees sign in with their work email.</p>
 
         {% if form.errors %}
-        <article class="message error">Login failed. Check the username and password.</article>
+        <article class="message error">Login failed. Check the work email or username and password.</article>
         {% endif %}
 
         <form method="post" class="stacked-form">
             {% csrf_token %}
-            <label for="id_username">Username</label>
+            <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
             {{ form.username }}
 
-            <label for="id_password">Password</label>
+            <label for="{{ form.password.id_for_label }}">Password</label>
             {{ form.password }}
 
             <button type="submit">Sign in</button>
@@ -33,6 +33,7 @@
             <p><code>hradmin</code> / <code>ChangeMe123!</code></p>
             <p><code>hruser</code> / <code>ChangeMe123!</code></p>
             <p><code>itadmin</code> / <code>ChangeMe123!</code></p>
+            <p><code>sara.bennani@ytech.local</code> / <code>WelcomeEmployee123!</code></p>
         </section>
     </main>
 </body>

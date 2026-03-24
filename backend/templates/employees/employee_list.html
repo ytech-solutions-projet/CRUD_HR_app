@@ -9,7 +9,9 @@
         <h2>Employee Directory</h2>
         <p>Search, review, and maintain staff records without exposing the system to the public internet.</p>
     </div>
+    {% if can_manage_employees %}
     <a href="{% url 'employee-create' %}" class="button-link">Add Employee</a>
+    {% endif %}
 </section>
 
 <section class="stats-grid">
@@ -79,11 +81,13 @@
                 <td>{{ employee.hire_date }}</td>
                 <td class="actions">
                     <a href="{% url 'employee-detail' employee.pk %}">View</a>
+                    {% if can_manage_employees %}
                     <a href="{% url 'employee-update' employee.pk %}">Edit</a>
                     {% if can_suspend and employee.employment_status != "SUSPENDED" %}
                     <a href="{% url 'employee-suspend' employee.pk %}" class="warning-link">Suspend</a>
                     {% elif employee.employment_status == "SUSPENDED" %}
                     <span class="muted-label">Suspended</span>
+                    {% endif %}
                     {% endif %}
                 </td>
             </tr>

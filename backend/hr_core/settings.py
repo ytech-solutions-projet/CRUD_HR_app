@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "accounts",
     "employees",
 ]
 
@@ -86,6 +87,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "accounts.context_processors.navigation",
             ],
         },
     },
@@ -118,6 +120,10 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
 
+AUTHENTICATION_BACKENDS = [
+    "accounts.auth_backends.EmailOrUsernameModelBackend",
+]
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Africa/Casablanca"
 USE_I18N = True
@@ -128,7 +134,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "employee-list"
+LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
 
 SESSION_COOKIE_HTTPONLY = True

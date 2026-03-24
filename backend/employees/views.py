@@ -1,26 +1,18 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpRequest
 from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
+from .access import READ_GROUPS, SUSPEND_GROUPS, WRITE_GROUPS, user_can_manage_employees, user_has_group
 from .forms import EmployeeForm, EmployeeSearchForm
 from .models import AuditLog, Employee
-
-READ_GROUPS = {"HR User", "HR Admin", "IT Admin"}
-WRITE_GROUPS = {"HR User", "HR Admin"}
-SUSPEND_GROUPS = WRITE_GROUPS
-
-
-def user_has_group(user, groups: set[str]) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return user.groups.filter(name__in=groups).exists()
+from .services import sync_employee_sign_in_account
 
 
 def get_client_ip(request: HttpRequest) -> str | None:
@@ -95,6 +87,7 @@ class EmployeeListView(GroupRequiredMixin, ListView):
             "suspended": Employee.objects.filter(employment_status=Employee.EmploymentStatus.SUSPENDED).count(),
             "terminated": Employee.objects.filter(employment_status=Employee.EmploymentStatus.TERMINATED).count(),
         }
+        context["can_manage_employees"] = user_can_manage_employees(self.request.user)
         context["can_suspend"] = user_has_group(self.request.user, SUSPEND_GROUPS)
         return context
 
@@ -107,6 +100,7 @@ class EmployeeDetailView(GroupRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["can_manage_employees"] = user_can_manage_employees(self.request.user)
         context["can_suspend"] = user_has_group(self.request.user, SUSPEND_GROUPS)
         return context
 
@@ -119,15 +113,20 @@ class EmployeeCreateView(GroupRequiredMixin, CreateView):
     allowed_groups = WRITE_GROUPS
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        with transaction.atomic():
+            self.object = form.save()
+            sync_employee_sign_in_account(self.object, form.cleaned_data.get("account_password"))
         log_audit_event(
             self.request,
             AuditLog.ActionType.CREATE,
             self.object,
             details={"employee_code": self.object.employee_code},
         )
-        messages.success(self.request, "Employee added successfully.")
-        return response
+        messages.success(
+            self.request,
+            "Employee added successfully. The employee can sign in with their work email and the password set on this form.",
+        )
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class EmployeeUpdateView(GroupRequiredMixin, UpdateView):
@@ -138,15 +137,20 @@ class EmployeeUpdateView(GroupRequiredMixin, UpdateView):
     allowed_groups = WRITE_GROUPS
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        with transaction.atomic():
+            self.object = form.save()
+            sync_employee_sign_in_account(self.object, form.cleaned_data.get("account_password"))
         log_audit_event(
             self.request,
             AuditLog.ActionType.UPDATE,
             self.object,
             details={"employee_code": self.object.employee_code},
         )
-        messages.success(self.request, "Employee updated successfully.")
-        return response
+        messages.success(
+            self.request,
+            "Employee updated successfully. The employee sign-in account is now synced to the current work email.",
+        )
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class EmployeeSuspendView(GroupRequiredMixin, DetailView):

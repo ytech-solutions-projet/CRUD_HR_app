@@ -54,6 +54,7 @@ Demo accounts:
 
 ## What To Read First
 
+- [docs/deploy-ubuntu24-single-host.md](docs/deploy-ubuntu24-single-host.md): quickest path for deploying this project on one Ubuntu 24 04 server
 - [docs/secure-hr-architecture.md](docs/secure-hr-architecture.md): full technical architecture guide
 - [docs/deploy-linux.md](docs/deploy-linux.md): Ubuntu/Linux deployment guide for Nginx, Gunicorn, systemd, and MariaDB
 - [database/schema.sql](database/schema.sql): MariaDB schema with constraints and least-privilege grants
@@ -72,6 +73,8 @@ Demo accounts:
 ## Production Note
 
 The local app uses SQLite so it can run easily in this workspace. The production architecture in the docs now recommends MariaDB, Nginx, Gunicorn, internal-only deployment, and network segmentation.
+
+If you only have one Ubuntu 24.04 server available, start with [docs/deploy-ubuntu24-single-host.md](docs/deploy-ubuntu24-single-host.md). If you want the stricter internal-network layout with a separate database server, use [docs/deploy-linux.md](docs/deploy-linux.md).
 
 ## IDE Preview Note
 

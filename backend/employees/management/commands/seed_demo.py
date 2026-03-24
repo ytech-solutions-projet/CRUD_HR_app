@@ -5,6 +5,7 @@ from django.contrib.auth.models import Group, User
 from django.core.management.base import BaseCommand
 
 from employees.models import Department, Employee
+from employees.services import employee_sign_in_is_active
 
 
 class Command(BaseCommand):
@@ -103,10 +104,32 @@ class Command(BaseCommand):
         ]
 
         for employee_payload in sample_employees:
-            Employee.objects.update_or_create(
+            employee, _ = Employee.objects.update_or_create(
                 employee_code=employee_payload["employee_code"],
                 defaults=employee_payload,
             )
+            employee_user, _ = User.objects.get_or_create(
+                username=employee.email,
+                defaults={
+                    "email": employee.email,
+                    "first_name": employee.first_name,
+                    "last_name": employee.last_name,
+                    "is_staff": False,
+                    "is_active": employee_sign_in_is_active(employee),
+                },
+            )
+            employee_user.email = employee.email
+            employee_user.first_name = employee.first_name
+            employee_user.last_name = employee.last_name
+            employee_user.is_staff = False
+            employee_user.is_active = employee_sign_in_is_active(employee)
+            if not employee_user.check_password("WelcomeEmployee123!"):
+                employee_user.set_password("WelcomeEmployee123!")
+            employee_user.save()
+            if employee.user_id != employee_user.pk:
+                employee.user = employee_user
+                employee.save(update_fields=["user", "updated_at"])
 
         self.stdout.write(self.style.SUCCESS("Demo data created."))
         self.stdout.write("Users: hradmin / ChangeMe123!, hruser / ChangeMe123!, itadmin / ChangeMe123!")
+        self.stdout.write("Demo employees: sara.bennani@ytech.local / WelcomeEmployee123! (same password for seeded employees)")

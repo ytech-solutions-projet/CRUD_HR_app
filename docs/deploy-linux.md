@@ -8,6 +8,8 @@ This guide deploys the HR application on an internal Ubuntu 24.04 LTS server usi
 - MariaDB
 - internal-only access
 
+If you want the simpler one-server setup first, use [deploy-ubuntu24-single-host.md](deploy-ubuntu24-single-host.md).
+
 ## Assumptions
 
 - App server hostname: `hr-app-01`

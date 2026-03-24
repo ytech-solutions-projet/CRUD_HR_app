@@ -11,9 +11,11 @@
             <p>{{ employee.position_title }} in {{ employee.department.name }}</p>
         </div>
         <div class="button-row">
+            {% if can_manage_employees %}
             <a href="{% url 'employee-update' employee.pk %}" class="button-link">Edit</a>
             {% if can_suspend and employee.employment_status != "SUSPENDED" %}
             <a href="{% url 'employee-suspend' employee.pk %}" class="warning-link">Suspend</a>
+            {% endif %}
             {% endif %}
             <a href="{% url 'employee-list' %}" class="secondary-link">Back</a>
         </div>

@@ -16,8 +16,16 @@
             </div>
             {% if request.user.is_authenticated %}
             <nav>
+                {% if can_access_employee_directory %}
                 <a href="{% url 'employee-list' %}">Employees</a>
+                {% endif %}
+                {% if has_employee_self_service %}
+                <a href="{% url 'employee-self-service' %}">My Profile</a>
+                {% endif %}
+                <a href="{% url 'password-change' %}">Change Password</a>
+                {% if can_access_admin %}
                 <a href="/admin/">Admin</a>
+                {% endif %}
                 <form method="post" action="{% url 'logout' %}" class="logout-form">
                     {% csrf_token %}
                     <button type="submit" class="secondary-button">Log out</button>

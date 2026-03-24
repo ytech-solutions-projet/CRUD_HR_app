@@ -1,9 +1,21 @@
 from django import forms
+from accounts.forms import EmployeeAccountMixin
 
 from .models import Department, Employee
 
 
-class EmployeeForm(forms.ModelForm):
+class EmployeeForm(EmployeeAccountMixin, forms.ModelForm):
+    account_password = forms.CharField(
+        required=False,
+        strip=False,
+        label="Sign-in password",
+        widget=forms.PasswordInput(render_value=True),
+        help_text=(
+            "Set the employee's starting sign-in password. "
+            "They can change it themselves after logging in."
+        ),
+    )
+
     class Meta:
         model = Employee
         fields = [
@@ -26,6 +38,15 @@ class EmployeeForm(forms.ModelForm):
 
     def clean_email(self):
         return self.cleaned_data["email"].strip().lower()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.configure_account_password_field()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        self._validate_sign_in_account()
+        return cleaned_data
 
 
 class EmployeeSearchForm(forms.Form):
