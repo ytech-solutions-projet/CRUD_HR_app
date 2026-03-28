@@ -19,6 +19,12 @@
                 {% if can_access_employee_directory %}
                 <a href="{% url 'employee-list' %}">Employees</a>
                 {% endif %}
+                {% if can_manage_account_privileges %}
+                <a href="{% url 'account-access-list' %}">Account Access</a>
+                {% endif %}
+                {% if can_view_database %}
+                <a href="{% url 'database-overview' %}">Database</a>
+                {% endif %}
                 {% if has_employee_self_service %}
                 <a href="{% url 'employee-self-service' %}">My Profile</a>
                 {% endif %}

@@ -7,6 +7,18 @@
     <div>
         <p class="eyebrow">Employee Record</p>
         <h2>{% if object %}Update employee{% else %}Add a new employee{% endif %}</h2>
+        {% if object %}
+        <p class="subtitle">
+            Current employee code: {{ object.employee_code }}.
+            Current work email: {{ object.email }}.
+            Saving name changes will regenerate the work email automatically.
+        </p>
+        {% else %}
+        <p class="subtitle">
+            Employee code is generated automatically when you save.
+            Work email is generated automatically as last.first@ytech.local, then _1, _2, and so on when needed.
+        </p>
+        {% endif %}
     </div>
 
     <form method="post" class="stacked-form">

@@ -1,4 +1,4 @@
-from employees.access import user_can_view_employee_directory
+from employees.access import user_can_manage_account_privileges, user_can_view_employee_directory
 from employees.models import Employee
 
 
@@ -18,6 +18,8 @@ def navigation(request):
 
     return {
         "can_access_employee_directory": user_can_view_employee_directory(user),
+        "can_manage_account_privileges": user_can_manage_account_privileges(user),
+        "can_view_database": user_can_manage_account_privileges(user),
         "has_employee_self_service": employee_profile is not None,
         "can_access_admin": user.is_staff,
     }

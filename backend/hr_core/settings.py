@@ -21,18 +21,15 @@ def get_database_config():
         }
 
     parsed = urlparse(database_url)
-    if parsed.scheme in {"mysql", "mariadb"}:
+    if parsed.scheme in {"postgres", "postgresql"}:
         return {
-            "ENGINE": "django.db.backends.mysql",
+            "ENGINE": "django.db.backends.postgresql",
             "NAME": unquote(parsed.path.lstrip("/")),
             "USER": unquote(parsed.username or ""),
             "PASSWORD": unquote(parsed.password or ""),
             "HOST": parsed.hostname or "127.0.0.1",
-            "PORT": parsed.port or 3306,
+            "PORT": parsed.port or 5432,
             "CONN_MAX_AGE": int(os.getenv("DATABASE_CONN_MAX_AGE", "60")),
-            "OPTIONS": {
-                "charset": "utf8mb4",
-            },
         }
     if parsed.scheme == "sqlite":
         db_path = unquote(parsed.path.lstrip("/")) or str(BASE_DIR / "db.sqlite3")
@@ -40,7 +37,7 @@ def get_database_config():
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": db_path,
         }
-    raise ValueError("Unsupported DATABASE_URL scheme. Use mariadb://, mysql://, or sqlite:///")
+    raise ValueError("Unsupported DATABASE_URL scheme. Use postgresql://, postgres://, or sqlite:///")
 
 
 SECRET_KEY = os.getenv(

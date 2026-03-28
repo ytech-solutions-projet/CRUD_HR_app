@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Account Access | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Privilege Control</p>
+        <h2>Account Access</h2>
+        <p>Assign workspace privileges to specific accounts without opening Django admin.</p>
+    </div>
+</section>
+
+<section class="role-grid">
+    {% for role_name, role_description in role_details %}
+    <article>
+        <strong>{{ role_name }}</strong>
+        <p>{{ role_description }}</p>
+    </article>
+    {% endfor %}
+</section>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Current Privileges</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in account_rows %}
+            <tr>
+                <td>{{ row.user.username }}</td>
+                <td>{{ row.user.get_full_name|default:"-" }}</td>
+                <td>{{ row.user.email|default:"-" }}</td>
+                <td>
+                    {% if row.privileges %}
+                        {% for privilege in row.privileges %}
+                        <span class="privilege-pill">{{ privilege }}</span>
+                        {% endfor %}
+                    {% else %}
+                    <span class="muted-label">No special privileges</span>
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    <a href="{% url 'account-access-update' row.user.pk %}">Manage Privileges</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No accounts are available.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+{% if is_paginated %}
+<nav class="pagination-bar">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Account Privileges | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="form-panel">
+    <div>
+        <p class="eyebrow">Privilege Control</p>
+        <h2>Manage account privileges</h2>
+        <p><strong>{{ account.username }}</strong>{% if account.email %} - {{ account.email }}{% endif %}</p>
+        {% if linked_employee %}
+        <p>Linked employee: {{ linked_employee.first_name }} {{ linked_employee.last_name }} ({{ linked_employee.employee_code }})</p>
+        {% endif %}
+    </div>
+
+    <form method="post" class="stacked-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div>
+            <label>{{ form.privilege_groups.label }}</label>
+            <ul class="checkbox-list">
+                {% for checkbox in form.privilege_groups %}
+                <li>
+                    <label for="{{ checkbox.id_for_label }}">
+                        {{ checkbox.tag }}
+                        <span>
+                            <strong>{{ checkbox.choice_label }}</strong><br>
+                            <small class="field-help">
+                                {% for role_name, role_description in role_details %}
+                                    {% if role_name == checkbox.choice_label %}
+                                        {{ role_description }}
+                                    {% endif %}
+                                {% endfor %}
+                            </small>
+                        </span>
+                    </label>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if form.privilege_groups.help_text %}
+            <small class="field-help">{{ form.privilege_groups.help_text }}</small>
+            {% endif %}
+            {% if form.privilege_groups.errors %}
+            <small class="error-text">{{ form.privilege_groups.errors|join:", " }}</small>
+            {% endif %}
+        </div>
+        <div class="button-row">
+            <button type="submit">Save privileges</button>
+            <a href="{% url 'account-access-list' %}" class="secondary-link">Back</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

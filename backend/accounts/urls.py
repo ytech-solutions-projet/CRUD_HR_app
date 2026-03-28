@@ -1,7 +1,13 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
-from .views import EmailLoginView, EmployeeSelfServiceView
+from .views import (
+    AccountAccessListView,
+    AccountAccessUpdateView,
+    DatabaseOverviewView,
+    EmailLoginView,
+    EmployeeSelfServiceView,
+)
 
 urlpatterns = [
     path("login/", EmailLoginView.as_view(), name="login"),
@@ -21,5 +27,8 @@ urlpatterns = [
         ),
         name="password-change-done",
     ),
+    path("accounts/access/", AccountAccessListView.as_view(), name="account-access-list"),
+    path("accounts/access/<int:pk>/", AccountAccessUpdateView.as_view(), name="account-access-update"),
+    path("database/", DatabaseOverviewView.as_view(), name="database-overview"),
     path("me/", EmployeeSelfServiceView.as_view(), name="employee-self-service"),
 ]

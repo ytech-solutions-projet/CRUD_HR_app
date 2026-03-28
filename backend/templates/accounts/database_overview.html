@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Database Overview | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Read-Only Database View</p>
+        <h2>Database Overview</h2>
+        <p>Inspect the main application tables and current connection settings from inside the workspace.</p>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article>
+        <span>Departments</span>
+        <strong>{{ table_counts.departments }}</strong>
+    </article>
+    <article>
+        <span>Employees</span>
+        <strong>{{ table_counts.employees }}</strong>
+    </article>
+    <article>
+        <span>Accounts</span>
+        <strong>{{ table_counts.accounts }}</strong>
+    </article>
+    <article>
+        <span>Audit Logs</span>
+        <strong>{{ table_counts.audit_logs }}</strong>
+    </article>
+</section>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th colspan="3">Departments</th>
+            </tr>
+            <tr>
+                <th>Name</th>
+                <th>Created</th>
+                <th>Employees</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for department in departments %}
+            <tr>
+                <td>{{ department.name }}</td>
+                <td>{{ department.created_at }}</td>
+                <td>{{ department.employees.count }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No departments found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th colspan="6">Employees</th>
+            </tr>
+            <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Status</th>
+                <th>Linked Account</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>{{ employee.employee_code }}</td>
+                <td>{{ employee.first_name }} {{ employee.last_name }}</td>
+                <td>{{ employee.email }}</td>
+                <td>{{ employee.department.name }}</td>
+                <td>{{ employee.get_employment_status_display }}</td>
+                <td>{% if employee.user %}{{ employee.user.username }}{% else %}<span class="muted-label">No account</span>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">No employees found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th colspan="5">Accounts</th>
+            </tr>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Staff</th>
+                <th>Privileges</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in accounts %}
+            <tr>
+                <td>{{ row.user.username }}</td>
+                <td>{{ row.user.email|default:"-" }}</td>
+                <td>{% if row.user.is_active %}Active{% else %}Inactive{% endif %}</td>
+                <td>{% if row.user.is_staff %}Yes{% else %}No{% endif %}</td>
+                <td>
+                    {% if row.privileges %}
+                        {% for privilege in row.privileges %}
+                        <span class="privilege-pill">{{ privilege }}</span>
+                        {% endfor %}
+                    {% else %}
+                    <span class="muted-label">No special privileges</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No accounts found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th colspan="5">Recent Audit Logs</th>
+            </tr>
+            <tr>
+                <th>Created</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Target Table</th>
+                <th>Target ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for audit_log in audit_logs %}
+            <tr>
+                <td>{{ audit_log.created_at }}</td>
+                <td>{{ audit_log.actor_username }}</td>
+                <td>{{ audit_log.get_action_type_display }}</td>
+                <td>{{ audit_log.target_table }}</td>
+                <td>{{ audit_log.target_id|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No audit logs found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

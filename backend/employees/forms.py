@@ -2,6 +2,7 @@ from django import forms
 from accounts.forms import EmployeeAccountMixin
 
 from .models import Department, Employee
+from .services import generate_employee_code, generate_employee_email
 
 
 class EmployeeForm(EmployeeAccountMixin, forms.ModelForm):
@@ -19,10 +20,8 @@ class EmployeeForm(EmployeeAccountMixin, forms.ModelForm):
     class Meta:
         model = Employee
         fields = [
-            "employee_code",
             "first_name",
             "last_name",
-            "email",
             "department",
             "position_title",
             "salary",
@@ -33,20 +32,41 @@ class EmployeeForm(EmployeeAccountMixin, forms.ModelForm):
             "hire_date": forms.DateInput(attrs={"type": "date"}),
         }
 
-    def clean_employee_code(self):
-        return self.cleaned_data["employee_code"].strip().upper()
-
-    def clean_email(self):
-        return self.cleaned_data["email"].strip().lower()
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.configure_account_password_field()
 
     def clean(self):
         cleaned_data = super().clean()
+        first_name = cleaned_data.get("first_name")
+        last_name = cleaned_data.get("last_name")
+
+        if first_name and last_name:
+            try:
+                generated_email = generate_employee_email(first_name, last_name, self.instance)
+            except ValueError as exc:
+                self.add_error(None, exc)
+            else:
+                cleaned_data["email"] = generated_email
+                self.instance.email = generated_email
+                if self.instance.pk:
+                    cleaned_data["employee_code"] = self.instance.employee_code
+                else:
+                    generated_code = generate_employee_code()
+                    cleaned_data["employee_code"] = generated_code
+                    self.instance.employee_code = generated_code
+
         self._validate_sign_in_account()
         return cleaned_data
+
+    def save(self, commit=True):
+        employee = super().save(commit=False)
+        employee.email = self.cleaned_data["email"]
+        if not employee.employee_code:
+            employee.employee_code = self.cleaned_data["employee_code"]
+        if commit:
+            employee.save()
+        return employee
 
 
 class EmployeeSearchForm(forms.Form):

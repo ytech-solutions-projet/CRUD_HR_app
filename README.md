@@ -12,7 +12,7 @@ The design assumes:
 
 - Frontend: Django templates with Bootstrap for a simple internal UI
 - Backend: Django + Django REST Framework
-- Database: MariaDB
+- Database: PostgreSQL
 - Reverse proxy: Nginx
 - App server: Gunicorn
 - Auth: Session-based authentication with Argon2id password hashing and role-based access control
@@ -39,6 +39,8 @@ docs/
 From the repository root:
 
 ```powershell
+docker compose up -d postgres
+$env:DATABASE_URL="postgresql://hr_app_user:LocalPostgres12345!@127.0.0.1:5432/ytech_hr"
 python backend/manage.py migrate
 python backend/manage.py seed_demo
 python backend/manage.py runserver
@@ -56,8 +58,8 @@ Demo accounts:
 
 - [docs/deploy-ubuntu24-single-host.md](docs/deploy-ubuntu24-single-host.md): quickest path for deploying this project on one Ubuntu 24 04 server
 - [docs/secure-hr-architecture.md](docs/secure-hr-architecture.md): full technical architecture guide
-- [docs/deploy-linux.md](docs/deploy-linux.md): Ubuntu/Linux deployment guide for Nginx, Gunicorn, systemd, and MariaDB
-- [database/schema.sql](database/schema.sql): MariaDB schema with constraints and least-privilege grants
+- [docs/deploy-linux.md](docs/deploy-linux.md): Ubuntu/Linux deployment guide for Nginx, Gunicorn, systemd, and the database service
+- [database/schema.sql](database/schema.sql): database schema reference
 - [backend/openapi.yaml](backend/openapi.yaml): CRUD API contract
 - [config/nginx/hr_internal.conf](config/nginx/hr_internal.conf): internal-only Nginx example
 
@@ -68,11 +70,11 @@ Demo accounts:
 - Search by employee fields
 - Department and status filtering
 - Audit logging for logins and CRUD actions
-- SQLite for local development
+- PostgreSQL for local development
 
 ## Production Note
 
-The local app uses SQLite so it can run easily in this workspace. The production architecture in the docs now recommends MariaDB, Nginx, Gunicorn, internal-only deployment, and network segmentation.
+The local app is configured to run against PostgreSQL. The production architecture in the docs recommends PostgreSQL, Nginx, Gunicorn, internal-only deployment, and network segmentation.
 
 If you only have one Ubuntu 24.04 server available, start with [docs/deploy-ubuntu24-single-host.md](docs/deploy-ubuntu24-single-host.md). If you want the stricter internal-network layout with a separate database server, use [docs/deploy-linux.md](docs/deploy-linux.md).
 
