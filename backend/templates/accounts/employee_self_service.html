@@ -1,17 +1,54 @@
 {% extends "base.html" %}
 
-{% block title %}My Profile | Ytech HR{% endblock %}
+{% block title %}My Dashboard | Ytech HR{% endblock %}
 
 {% block content %}
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Employee Dashboard</p>
+        <h2>{{ employee.first_name }} {{ employee.last_name }}</h2>
+        <p>{{ employee.position_title }} in {{ employee.department.name }}</p>
+    </div>
+    <div class="button-row">
+        <a href="{% url 'employee-holiday-request' %}" class="button-link">Request Holiday</a>
+        <a href="{% url 'employee-sanctions' %}" class="secondary-link">Warnings &amp; Blames</a>
+        <a href="{% url 'password-change' %}" class="secondary-link">Change Password</a>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article>
+        <span>Allowed {{ leave_balance.year }}</span>
+        <strong>{{ leave_balance.allowed_days }}</strong>
+    </article>
+    <article>
+        <span>Approved Days</span>
+        <strong>{{ leave_balance.approved_days }}</strong>
+    </article>
+    <article>
+        <span>Pending Days</span>
+        <strong>{{ leave_balance.pending_days }}</strong>
+    </article>
+    <article>
+        <span>Days Left</span>
+        <strong>{{ leave_balance.remaining_days }}</strong>
+    </article>
+    <article>
+        <span>Days Owed</span>
+        <strong>{{ leave_balance.owed_days }}</strong>
+    </article>
+    <article>
+        <span>Surplus Hours</span>
+        <strong>{{ total_surplus_hours }}</strong>
+    </article>
+</section>
+
 <section class="detail-panel">
     <div class="detail-header">
         <div>
-            <p class="eyebrow">Employee Self Service</p>
-            <h2>{{ employee.first_name }} {{ employee.last_name }}</h2>
+            <p class="eyebrow">Profile</p>
+            <h2>My employment details</h2>
             <p>Sign-in email: {{ employee.email }}</p>
-        </div>
-        <div class="button-row">
-            <a href="{% url 'password-change' %}" class="button-link">Change Password</a>
         </div>
     </div>
 
@@ -23,5 +60,92 @@
         <article><strong>Status</strong><span>{{ employee.get_employment_status_display }}</span></article>
         <article><strong>Hire Date</strong><span>{{ employee.hire_date }}</span></article>
     </div>
+</section>
+
+<section class="detail-panel">
+    <div class="detail-header">
+        <div>
+            <p class="eyebrow">Holiday Requests</p>
+            <h2>My requests</h2>
+            <p>Your requests stay pending until HR and CEO both approve them.</p>
+        </div>
+        <a href="{% url 'employee-holiday-request' %}" class="button-link">New Request</a>
+    </div>
+
+    <div class="table-shell compact-shell">
+        <table>
+            <thead>
+                <tr>
+                    <th>Dates</th>
+                    <th>Type</th>
+                    <th>Days</th>
+                    <th>HR</th>
+                    <th>CEO</th>
+                    <th>Overall</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in holiday_requests %}
+                <tr>
+                    <td>{{ request.start_date }} to {{ request.end_date }}</td>
+                    <td>{{ request.get_leave_type_display }}</td>
+                    <td>{{ request.total_days }}</td>
+                    <td><span class="status-badge {{ request.hr_status|lower }}">{{ request.hr_status|lower|capfirst }}</span></td>
+                    <td><span class="status-badge {{ request.ceo_status|lower }}">{{ request.ceo_status|lower|capfirst }}</span></td>
+                    <td><span class="status-badge {{ request.overall_status|lower }}">{{ request.overall_status|lower|capfirst }}</span></td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">No holiday request has been submitted yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="split-grid">
+    <article class="detail-panel">
+        <div class="detail-header">
+            <div>
+                <p class="eyebrow">Disciplinary Notes</p>
+                <h2>Warnings and blames</h2>
+                <p>Review the latest notes attached to your file.</p>
+            </div>
+            <a href="{% url 'employee-sanctions' %}" class="secondary-link">Open Page</a>
+        </div>
+        <div class="stack-list">
+            {% for sanction in sanctions %}
+            <article class="record-card">
+                <strong>{{ sanction.get_sanction_type_display }}</strong>
+                <span>{{ sanction.subject }}</span>
+                <small>{{ sanction.issued_on }}{% if sanction.issued_by %} by {{ sanction.issued_by.get_username }}{% endif %}</small>
+            </article>
+            {% empty %}
+            <p class="subtitle">No warning or blame has been recorded on your file.</p>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="detail-panel">
+        <div class="detail-header">
+            <div>
+                <p class="eyebrow">Worked Hours</p>
+                <h2>Surplus hours</h2>
+                <p>Positive extra time above the scheduled shift is totaled below.</p>
+            </div>
+        </div>
+        <div class="stack-list">
+            {% for worked_hour_log in worked_hour_logs %}
+            <article class="record-card">
+                <strong>{{ worked_hour_log.work_date }}</strong>
+                <span>{{ worked_hour_log.worked_hours }}h worked for {{ worked_hour_log.scheduled_hours }}h scheduled</span>
+                <small>Surplus: {{ worked_hour_log.surplus_hours }}h{% if worked_hour_log.recorded_by %} by {{ worked_hour_log.recorded_by.get_username }}{% endif %}</small>
+            </article>
+            {% empty %}
+            <p class="subtitle">No worked-hours log has been recorded yet.</p>
+            {% endfor %}
+        </div>
+    </article>
 </section>
 {% endblock %}

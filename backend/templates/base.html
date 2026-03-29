@@ -19,6 +19,9 @@
                 {% if can_access_employee_directory %}
                 <a href="{% url 'employee-list' %}">Employees</a>
                 {% endif %}
+                {% if can_review_holiday_requests %}
+                <a href="{% url 'employee-leave-queue' %}">Leave Requests</a>
+                {% endif %}
                 {% if can_manage_account_privileges %}
                 <a href="{% url 'account-access-list' %}">Account Access</a>
                 {% endif %}
@@ -27,6 +30,7 @@
                 {% endif %}
                 {% if has_employee_self_service %}
                 <a href="{% url 'employee-self-service' %}">My Profile</a>
+                <a href="{% url 'employee-sanctions' %}">My Warnings</a>
                 {% endif %}
                 <a href="{% url 'password-change' %}">Change Password</a>
                 {% if can_access_admin %}

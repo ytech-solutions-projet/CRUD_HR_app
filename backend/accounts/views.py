@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import connections
 from django.http import HttpRequest, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import DetailView, ListView, RedirectView, TemplateView, UpdateView
+from django.views.generic import CreateView, DetailView, ListView, RedirectView, TemplateView, UpdateView
 
 from accounts.forms import AccountPrivilegeForm, EmailOrUsernameAuthenticationForm
 from employees.access import (
@@ -17,7 +17,8 @@ from employees.access import (
     user_can_manage_account_privileges,
     user_can_view_employee_directory,
 )
-from employees.models import AuditLog, Department, Employee
+from employees.forms import HolidayRequestForm
+from employees.models import AuditLog, Department, Employee, HolidayRequest
 
 
 def get_client_ip(request: HttpRequest) -> str | None:
@@ -40,6 +41,24 @@ def log_account_access_update(request: HttpRequest, target_user):
                 target_user.groups.filter(name__in=PRIVILEGE_GROUP_ORDER).values_list("name", flat=True)
             ),
         },
+    )
+
+
+def log_employee_self_service_event(
+    request: HttpRequest,
+    action_type: str,
+    employee: Employee,
+    target_table: str,
+    target_id: int,
+    details: dict | None = None,
+):
+    AuditLog.objects.create(
+        actor_username=request.user.get_username() or "anonymous",
+        action_type=action_type,
+        target_table=target_table,
+        target_id=target_id,
+        source_ip=get_client_ip(request),
+        details={"employee_code": employee.employee_code, **(details or {})},
     )
 
 
@@ -185,3 +204,94 @@ class EmployeeSelfServiceView(LoginRequiredMixin, DetailView):
             return self.request.user.employee_profile
         except Employee.DoesNotExist as exc:
             raise PermissionDenied("This account is not linked to an employee profile.") from exc
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["leave_balance"] = self.object.get_leave_balance()
+        context["holiday_requests"] = self.object.holiday_requests.select_related(
+            "hr_reviewed_by",
+            "ceo_reviewed_by",
+        )[:10]
+        context["sanctions"] = self.object.sanctions.select_related("issued_by")[:5]
+        context["worked_hour_logs"] = self.object.worked_hour_logs.select_related("recorded_by")[:10]
+        context["total_surplus_hours"] = self.object.get_total_surplus_hours()
+        context["pending_holiday_requests_count"] = sum(
+            1
+            for holiday_request in self.object.holiday_requests.all()
+            if holiday_request.overall_status == HolidayRequest.ReviewStatus.PENDING
+        )
+        return context
+
+
+class EmployeeHolidayRequestCreateView(LoginRequiredMixin, CreateView):
+    form_class = HolidayRequestForm
+    template_name = "accounts/holiday_request_form.html"
+
+    def get_employee(self):
+        try:
+            return self.request.user.employee_profile
+        except Employee.DoesNotExist as exc:
+            raise PermissionDenied("This account is not linked to an employee profile.") from exc
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["employee"] = self.get_employee()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        employee = self.get_employee()
+        context["employee"] = employee
+        context["leave_balance"] = employee.get_leave_balance()
+        return context
+
+    def form_valid(self, form):
+        employee = self.get_employee()
+        holiday_request = form.save(commit=False)
+        holiday_request.employee = employee
+        holiday_request.save()
+        log_employee_self_service_event(
+            self.request,
+            AuditLog.ActionType.CREATE,
+            employee,
+            target_table="holiday_request",
+            target_id=holiday_request.pk,
+            details={
+                "leave_type": holiday_request.leave_type,
+                "start_date": holiday_request.start_date.isoformat(),
+                "end_date": holiday_request.end_date.isoformat(),
+                "total_days": holiday_request.total_days,
+            },
+        )
+        messages.success(
+            self.request,
+            "Holiday request submitted. It is now waiting for HR and CEO approval.",
+        )
+        return HttpResponseRedirect(reverse("employee-self-service"))
+
+
+class EmployeeSanctionListView(LoginRequiredMixin, ListView):
+    model = Employee
+    template_name = "accounts/employee_sanction_list.html"
+    context_object_name = "sanctions"
+
+    def get_employee(self):
+        try:
+            return self.request.user.employee_profile
+        except Employee.DoesNotExist as exc:
+            raise PermissionDenied("This account is not linked to an employee profile.") from exc
+
+    def get_queryset(self):
+        return self.get_employee().sanctions.select_related("issued_by").all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        employee = self.get_employee()
+        context["employee"] = employee
+        context["warning_count"] = employee.sanctions.filter(
+            sanction_type="WARNING",
+        ).count()
+        context["blame_count"] = employee.sanctions.filter(
+            sanction_type="BLAME",
+        ).count()
+        return context

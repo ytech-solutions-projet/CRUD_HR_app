@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Log Worked Hours | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="form-panel">
+    <div>
+        <p class="eyebrow">Worked Hours</p>
+        <h2>Log worked hours</h2>
+        <p class="subtitle">Employee: {{ employee.first_name }} {{ employee.last_name }} ({{ employee.employee_code }})</p>
+    </div>
+
+    <form method="post" class="stacked-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="form-grid">
+            {% for field in form %}
+            <div>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                <small class="field-help">{{ field.help_text }}</small>
+                {% endif %}
+                {% if field.errors %}
+                <small class="error-text">{{ field.errors|join:", " }}</small>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="button-row">
+            <button type="submit">Save Hours</button>
+            <a href="{% url 'employee-detail' employee.pk %}" class="secondary-link">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

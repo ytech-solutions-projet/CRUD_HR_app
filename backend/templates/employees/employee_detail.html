@@ -17,6 +17,10 @@
             <a href="{% url 'employee-suspend' employee.pk %}" class="warning-link">Suspend</a>
             {% endif %}
             {% endif %}
+            {% if can_manage_people_operations %}
+            <a href="{% url 'employee-sanction-create' employee.pk %}" class="secondary-link">Add Warning / Blame</a>
+            <a href="{% url 'employee-worked-hours-create' employee.pk %}" class="secondary-link">Log Worked Hours</a>
+            {% endif %}
             <a href="{% url 'employee-list' %}" class="secondary-link">Back</a>
         </div>
     </div>
@@ -27,9 +31,136 @@
         <article><strong>Department</strong><span>{{ employee.department.name }}</span></article>
         <article><strong>Status</strong><span>{{ employee.get_employment_status_display }}</span></article>
         <article><strong>Salary</strong><span>{{ employee.salary }}</span></article>
+        <article><strong>Annual Leave</strong><span>{{ employee.annual_leave_allowance }} days</span></article>
         <article><strong>Hire Date</strong><span>{{ employee.hire_date }}</span></article>
         <article><strong>Created</strong><span>{{ employee.created_at }}</span></article>
         <article><strong>Last Updated</strong><span>{{ employee.updated_at }}</span></article>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article>
+        <span>Allowed Days</span>
+        <strong>{{ leave_balance.allowed_days }}</strong>
+    </article>
+    <article>
+        <span>Approved Days</span>
+        <strong>{{ leave_balance.approved_days }}</strong>
+    </article>
+    <article>
+        <span>Pending Days</span>
+        <strong>{{ leave_balance.pending_days }}</strong>
+    </article>
+    <article>
+        <span>Days Left</span>
+        <strong>{{ leave_balance.remaining_days }}</strong>
+    </article>
+    <article>
+        <span>Days Owed</span>
+        <strong>{{ leave_balance.owed_days }}</strong>
+    </article>
+    <article>
+        <span>Surplus Hours</span>
+        <strong>{{ total_surplus_hours }}</strong>
+    </article>
+</section>
+
+<section class="split-grid">
+    <article class="detail-panel">
+        <div class="detail-header">
+            <div>
+                <p class="eyebrow">Holiday Workflow</p>
+                <h2>Recent leave requests</h2>
+            </div>
+            {% if can_manage_people_operations %}
+            <a href="{% url 'employee-leave-queue' %}" class="secondary-link">Open Queue</a>
+            {% endif %}
+        </div>
+        <div class="table-shell compact-shell">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dates</th>
+                        <th>Days</th>
+                        <th>HR</th>
+                        <th>CEO</th>
+                        <th>Overall</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in holiday_requests %}
+                    <tr>
+                        <td>{{ request.start_date }} to {{ request.end_date }}</td>
+                        <td>{{ request.total_days }}</td>
+                        <td>{{ request.hr_status|lower|capfirst }}</td>
+                        <td>{{ request.ceo_status|lower|capfirst }}</td>
+                        <td>{{ request.overall_status|lower|capfirst }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">No leave request recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="detail-panel">
+        <div class="detail-header">
+            <div>
+                <p class="eyebrow">Disciplinary Notes</p>
+                <h2>Warnings and blames</h2>
+            </div>
+        </div>
+        <div class="stack-list">
+            {% for sanction in sanctions %}
+            <article class="record-card">
+                <strong>{{ sanction.get_sanction_type_display }}</strong>
+                <span>{{ sanction.subject }}</span>
+                <small>{{ sanction.issued_on }}{% if sanction.issued_by %} by {{ sanction.issued_by.get_username }}{% endif %}</small>
+            </article>
+            {% empty %}
+            <p class="subtitle">No warning or blame recorded.</p>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+<section class="detail-panel">
+    <div class="detail-header">
+        <div>
+            <p class="eyebrow">Worked Hours</p>
+            <h2>Recent worked-hours logs</h2>
+        </div>
+    </div>
+    <div class="table-shell compact-shell">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Scheduled</th>
+                    <th>Worked</th>
+                    <th>Surplus</th>
+                    <th>Recorded By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for worked_hour_log in worked_hour_logs %}
+                <tr>
+                    <td>{{ worked_hour_log.work_date }}</td>
+                    <td>{{ worked_hour_log.scheduled_hours }}h</td>
+                    <td>{{ worked_hour_log.worked_hours }}h</td>
+                    <td>{{ worked_hour_log.surplus_hours }}h</td>
+                    <td>{% if worked_hour_log.recorded_by %}{{ worked_hour_log.recorded_by.get_username }}{% else %}-{% endif %}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No worked-hours log recorded.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </section>
 {% endblock %}

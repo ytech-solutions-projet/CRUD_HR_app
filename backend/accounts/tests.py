@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 
-from employees.models import Department, Employee
+from employees.models import Department, Employee, EmployeeSanction, HolidayRequest, WorkedHourLog
 
 
 class EmployeeSelfServiceTests(TestCase):
@@ -20,6 +20,7 @@ class EmployeeSelfServiceTests(TestCase):
             last_name="El Amrani",
             is_staff=False,
         )
+        cls.employee_user = employee_user
         cls.employee = Employee.objects.create(
             employee_code="YTHR-0300",
             user=employee_user,
@@ -41,7 +42,7 @@ class EmployeeSelfServiceTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Employee Self Service")
+        self.assertContains(response, "Employee Dashboard")
         self.assertContains(response, reverse("password-change"))
 
     def test_employee_can_change_password(self):
@@ -67,12 +68,69 @@ class EmployeeSelfServiceTests(TestCase):
             self.client.login(username="noor.elamrani@ytech.local", password="NewStrongPass123!")
         )
 
+    def test_employee_can_submit_holiday_request_from_dashboard(self):
+        self.client.force_login(self.employee_user)
+
+        response = self.client.post(
+            reverse("employee-holiday-request"),
+            {
+                "leave_type": HolidayRequest.LeaveType.ANNUAL,
+                "start_date": "2026-04-06",
+                "end_date": "2026-04-08",
+                "reason": "Family trip",
+                "handover_notes": "Coverage shared with the support team.",
+                "emergency_contact": "+212600000000",
+            },
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("employee-self-service"))
+        request = HolidayRequest.objects.get(employee=self.employee)
+        self.assertEqual(request.hr_status, HolidayRequest.ReviewStatus.PENDING)
+        self.assertEqual(request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
+        self.assertContains(response, "waiting for HR and CEO approval")
+        self.assertContains(response, "April 6, 2026 to April 8, 2026")
+
+    def test_employee_can_view_warnings_and_surplus_hours(self):
+        hr_user = User.objects.create_user(
+            username="hradmin@ytech.local",
+            email="hradmin@ytech.local",
+            password="ChangeMe123!",
+            is_staff=True,
+        )
+        EmployeeSanction.objects.create(
+            employee=self.employee,
+            sanction_type=EmployeeSanction.SanctionType.WARNING,
+            subject="Late response to escalations",
+            details="Two high-priority tickets were acknowledged after the SLA threshold.",
+            issued_by=hr_user,
+        )
+        WorkedHourLog.objects.create(
+            employee=self.employee,
+            work_date=date(2026, 3, 20),
+            scheduled_hours=Decimal("8.00"),
+            worked_hours=Decimal("10.00"),
+            recorded_by=hr_user,
+        )
+
+        self.client.force_login(self.employee_user)
+        dashboard_response = self.client.get(reverse("employee-self-service"))
+        sanctions_response = self.client.get(reverse("employee-sanctions"))
+
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertContains(dashboard_response, "Late response to escalations")
+        self.assertContains(dashboard_response, "2.00")
+        self.assertEqual(sanctions_response.status_code, 200)
+        self.assertContains(sanctions_response, "Warnings and blames")
+        self.assertContains(sanctions_response, "Late response to escalations")
+
 
 class AccountPrivilegeManagementTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.hr_admin_group = Group.objects.create(name="HR Admin")
         cls.hr_user_group = Group.objects.create(name="HR User")
+        cls.ceo_group = Group.objects.create(name="CEO")
         cls.it_admin_group = Group.objects.create(name="IT Admin")
 
         cls.hr_admin_user = User.objects.create_user(
@@ -111,6 +169,7 @@ class AccountPrivilegeManagementTests(TestCase):
         self.assertContains(list_response, reverse("account-access-update", args=[self.target_user.pk]))
         self.assertEqual(edit_response.status_code, 200)
         self.assertContains(edit_response, "Assigned privileges")
+        self.assertContains(edit_response, "CEO")
 
     def test_non_hr_admin_cannot_manage_account_privileges(self):
         self.client.force_login(self.it_admin_user)

@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Department, Employee
+from .models import Department, Employee, EmployeeSanction, HolidayRequest, WorkedHourLog
 from .services import generate_employee_email
 
 
@@ -14,6 +14,7 @@ class EmployeePermissionTests(TestCase):
     def setUpTestData(cls):
         hr_admin_group = Group.objects.create(name="HR Admin")
         hr_user_group = Group.objects.create(name="HR User")
+        ceo_group = Group.objects.create(name="CEO")
         it_admin_group = Group.objects.create(name="IT Admin")
 
         cls.hr_admin_user = User.objects.create_user(
@@ -36,6 +37,13 @@ class EmployeePermissionTests(TestCase):
             is_staff=True,
         )
         cls.it_admin_user.groups.add(it_admin_group)
+
+        cls.ceo_user = User.objects.create_user(
+            username="ceo",
+            password="ChangeMe123!",
+            is_staff=True,
+        )
+        cls.ceo_user.groups.add(ceo_group)
 
         department = Department.objects.create(name="Engineering")
         cls.employee = Employee.objects.create(
@@ -126,6 +134,7 @@ class EmployeePermissionTests(TestCase):
                 "department": self.employee.department.pk,
                 "position_title": "Analyst",
                 "salary": "17500.00",
+                "annual_leave_allowance": 18,
                 "hire_date": "2024-02-01",
                 "employment_status": Employee.EmploymentStatus.ACTIVE,
                 "account_password": "StartPass123!",
@@ -161,6 +170,7 @@ class EmployeePermissionTests(TestCase):
                 "department": self.employee.department.pk,
                 "position_title": "Recruiter",
                 "salary": "16500.00",
+                "annual_leave_allowance": 18,
                 "hire_date": "2024-02-10",
                 "employment_status": Employee.EmploymentStatus.ACTIVE,
                 "account_password": "StartPass123!",
@@ -188,6 +198,7 @@ class EmployeePermissionTests(TestCase):
                 "department": self.employee.department.pk,
                 "position_title": self.employee.position_title,
                 "salary": "22000.00",
+                "annual_leave_allowance": 24,
                 "hire_date": "2024-01-15",
                 "employment_status": Employee.EmploymentStatus.ACTIVE,
                 "account_password": "",
@@ -198,3 +209,74 @@ class EmployeePermissionTests(TestCase):
         self.employee.refresh_from_db()
         self.assertEqual(self.employee.email, generate_employee_email("Nadia", "Bennani", self.employee))
         self.assertEqual(self.employee.user.username, self.employee.email)
+
+    def test_hr_and_ceo_must_both_approve_holiday_request(self):
+        employee_user = User.objects.create_user(
+            username="nadia.elidrissi@ytech.local",
+            email="nadia.elidrissi@ytech.local",
+            password="Welcome12345!",
+        )
+        self.employee.user = employee_user
+        self.employee.save(update_fields=["user", "updated_at"])
+        holiday_request = HolidayRequest.objects.create(
+            employee=self.employee,
+            start_date=date(2026, 4, 7),
+            end_date=date(2026, 4, 9),
+            reason="Family commitment",
+        )
+
+        self.client.force_login(self.read_only_user)
+        hr_response = self.client.post(
+            reverse("holiday-request-review", args=[holiday_request.pk, "hr"]),
+            {"decision": "approve"},
+            follow=True,
+        )
+
+        self.assertRedirects(hr_response, reverse("employee-leave-queue"))
+        holiday_request.refresh_from_db()
+        self.assertEqual(holiday_request.hr_status, HolidayRequest.ReviewStatus.APPROVED)
+        self.assertEqual(holiday_request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
+        self.assertEqual(holiday_request.overall_status, HolidayRequest.ReviewStatus.PENDING)
+
+        self.client.force_login(self.ceo_user)
+        ceo_response = self.client.post(
+            reverse("holiday-request-review", args=[holiday_request.pk, "ceo"]),
+            {"decision": "approve"},
+            follow=True,
+        )
+
+        self.assertRedirects(ceo_response, reverse("employee-leave-queue"))
+        holiday_request.refresh_from_db()
+        self.assertEqual(holiday_request.ceo_status, HolidayRequest.ReviewStatus.APPROVED)
+        self.assertEqual(holiday_request.overall_status, HolidayRequest.ReviewStatus.APPROVED)
+
+    def test_hr_can_record_sanctions_and_surplus_hours(self):
+        self.client.force_login(self.hr_admin_user)
+
+        sanction_response = self.client.post(
+            reverse("employee-sanction-create", args=[self.employee.pk]),
+            {
+                "sanction_type": EmployeeSanction.SanctionType.WARNING,
+                "subject": "Missed deadline",
+                "details": "Weekly report was delivered one day late.",
+                "issued_on": "2026-03-14",
+            },
+        )
+        hours_response = self.client.post(
+            reverse("employee-worked-hours-create", args=[self.employee.pk]),
+            {
+                "work_date": "2026-03-18",
+                "scheduled_hours": "8.00",
+                "worked_hours": "10.50",
+                "notes": "Release support",
+            },
+        )
+
+        self.assertRedirects(sanction_response, reverse("employee-detail", args=[self.employee.pk]))
+        self.assertRedirects(hours_response, reverse("employee-detail", args=[self.employee.pk]))
+        self.assertTrue(
+            EmployeeSanction.objects.filter(employee=self.employee, subject="Missed deadline").exists()
+        )
+        worked_hour_log = WorkedHourLog.objects.get(employee=self.employee, work_date=date(2026, 3, 18))
+        self.assertEqual(worked_hour_log.surplus_hours, Decimal("2.50"))
+        self.assertEqual(self.employee.get_total_surplus_hours(), Decimal("2.50"))

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Leave Requests | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Approval Dashboard</p>
+        <h2>Holiday requests</h2>
+        <p>Each request stays pending until HR and CEO both approve it.</p>
+    </div>
+    <div class="button-row">
+        <a href="{% url 'employee-list' %}" class="secondary-link">Back to Employees</a>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article>
+        <span>Pending</span>
+        <strong>{{ request_counts.pending }}</strong>
+    </article>
+    <article>
+        <span>Approved</span>
+        <strong>{{ request_counts.approved }}</strong>
+    </article>
+    <article>
+        <span>Rejected</span>
+        <strong>{{ request_counts.rejected }}</strong>
+    </article>
+</section>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Dates</th>
+                <th>Type</th>
+                <th>Days</th>
+                <th>HR Status</th>
+                <th>CEO Status</th>
+                <th>Overall</th>
+                <th>Reason</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in holiday_requests %}
+            <tr>
+                <td>
+                    <strong>{{ request.employee.first_name }} {{ request.employee.last_name }}</strong><br>
+                    <small>{{ request.employee.employee_code }}</small>
+                </td>
+                <td>{{ request.start_date }} to {{ request.end_date }}</td>
+                <td>{{ request.get_leave_type_display }}</td>
+                <td>{{ request.total_days }}</td>
+                <td><span class="status-badge {{ request.hr_status|lower }}">{{ request.hr_status|lower|capfirst }}</span></td>
+                <td><span class="status-badge {{ request.ceo_status|lower }}">{{ request.ceo_status|lower|capfirst }}</span></td>
+                <td><span class="status-badge {{ request.overall_status|lower }}">{{ request.overall_status|lower|capfirst }}</span></td>
+                <td>{{ request.reason }}</td>
+                <td class="actions">
+                    {% if can_review_as_hr and request.hr_status == "PENDING" and request.overall_status == "PENDING" %}
+                    <form method="post" action="{% url 'holiday-request-review' request.pk 'hr' %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="decision" value="approve">
+                        <input type="hidden" name="next" value="{% url 'employee-leave-queue' %}">
+                        <button type="submit">Approve as HR</button>
+                    </form>
+                    <form method="post" action="{% url 'holiday-request-review' request.pk 'hr' %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="decision" value="reject">
+                        <input type="hidden" name="next" value="{% url 'employee-leave-queue' %}">
+                        <button type="submit" class="danger-button">Reject as HR</button>
+                    </form>
+                    {% endif %}
+                    {% if can_review_as_ceo and request.ceo_status == "PENDING" and request.overall_status == "PENDING" %}
+                    <form method="post" action="{% url 'holiday-request-review' request.pk 'ceo' %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="decision" value="approve">
+                        <input type="hidden" name="next" value="{% url 'employee-leave-queue' %}">
+                        <button type="submit">Approve as CEO</button>
+                    </form>
+                    <form method="post" action="{% url 'holiday-request-review' request.pk 'ceo' %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="decision" value="reject">
+                        <input type="hidden" name="next" value="{% url 'employee-leave-queue' %}">
+                        <button type="submit" class="danger-button">Reject as CEO</button>
+                    </form>
+                    {% endif %}
+                    {% if request.hr_status != "PENDING" and request.ceo_status != "PENDING" or request.overall_status == "REJECTED" %}
+                    <span class="muted-label">Completed</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9">No holiday requests have been submitted yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+{% if is_paginated %}
+<nav class="pagination-bar">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}">Next</a>
+    {% else %}
+    <span></span>
+    {% endif %}
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AuditLog, Department, Employee
+from .models import AuditLog, Department, Employee, EmployeeSanction, HolidayRequest, WorkedHourLog
 
 
 @admin.register(Department)
@@ -47,3 +47,32 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_filter = ("action_type", "target_table")
     search_fields = ("actor_username", "target_table")
     readonly_fields = ("created_at",)
+
+
+@admin.register(HolidayRequest)
+class HolidayRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "employee",
+        "leave_type",
+        "start_date",
+        "end_date",
+        "hr_status",
+        "ceo_status",
+        "created_at",
+    )
+    list_filter = ("leave_type", "hr_status", "ceo_status")
+    search_fields = ("employee__employee_code", "employee__first_name", "employee__last_name")
+
+
+@admin.register(EmployeeSanction)
+class EmployeeSanctionAdmin(admin.ModelAdmin):
+    list_display = ("employee", "sanction_type", "subject", "issued_on", "issued_by")
+    list_filter = ("sanction_type", "issued_on")
+    search_fields = ("employee__employee_code", "employee__first_name", "employee__last_name", "subject")
+
+
+@admin.register(WorkedHourLog)
+class WorkedHourLogAdmin(admin.ModelAdmin):
+    list_display = ("employee", "work_date", "scheduled_hours", "worked_hours", "recorded_by")
+    list_filter = ("work_date",)
+    search_fields = ("employee__employee_code", "employee__first_name", "employee__last_name", "notes")

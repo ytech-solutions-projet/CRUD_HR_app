@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Warnings & Blames | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Employee File</p>
+        <h2>Warnings and blames</h2>
+        <p>Review the disciplinary notes recorded on your account.</p>
+    </div>
+    <div class="button-row">
+        <a href="{% url 'employee-self-service' %}" class="secondary-link">Back to Dashboard</a>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article>
+        <span>Warnings</span>
+        <strong>{{ warning_count }}</strong>
+    </article>
+    <article>
+        <span>Blames</span>
+        <strong>{{ blame_count }}</strong>
+    </article>
+</section>
+
+<section class="table-shell">
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Subject</th>
+                <th>Details</th>
+                <th>Issued On</th>
+                <th>Issued By</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sanction in sanctions %}
+            <tr>
+                <td><span class="status-badge {% if sanction.sanction_type == 'BLAME' %}rejected{% endif %}">{{ sanction.get_sanction_type_display }}</span></td>
+                <td>{{ sanction.subject }}</td>
+                <td>{{ sanction.details }}</td>
+                <td>{{ sanction.issued_on }}</td>
+                <td>{% if sanction.issued_by %}{{ sanction.issued_by.get_username }}{% else %}-{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">No warning or blame has been recorded for your profile.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

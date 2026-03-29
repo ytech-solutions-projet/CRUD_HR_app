@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.contrib.auth.models import Group, User
 from django.core.management.base import BaseCommand
 
-from employees.models import Department, Employee
+from employees.models import Department, Employee, EmployeeSanction, HolidayRequest, WorkedHourLog
 from employees.services import employee_sign_in_is_active
 
 
@@ -14,6 +14,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         hr_user_group, _ = Group.objects.get_or_create(name="HR User")
         hr_admin_group, _ = Group.objects.get_or_create(name="HR Admin")
+        ceo_group, _ = Group.objects.get_or_create(name="CEO")
         it_admin_group, _ = Group.objects.get_or_create(name="IT Admin")
 
         departments = ["Human Resources", "Engineering", "Sales", "Finance"]
@@ -66,6 +67,21 @@ class Command(BaseCommand):
             auditor_user.is_staff = True
             auditor_user.save()
         auditor_user.groups.add(it_admin_group)
+
+        ceo_user, created = User.objects.get_or_create(
+            username="ceo",
+            defaults={
+                "first_name": "Chief",
+                "last_name": "Executive",
+                "email": "ceo@ytech.local",
+                "is_staff": True,
+            },
+        )
+        if created or not ceo_user.check_password("ChangeMe123!"):
+            ceo_user.set_password("ChangeMe123!")
+            ceo_user.is_staff = True
+            ceo_user.save()
+        ceo_user.groups.add(ceo_group)
 
         sample_employees = [
             {
@@ -130,6 +146,46 @@ class Command(BaseCommand):
                 employee.user = employee_user
                 employee.save(update_fields=["user", "updated_at"])
 
+        sara = Employee.objects.get(employee_code="YTHR-0001")
+        adam = Employee.objects.get(employee_code="YTHR-0002")
+
+        HolidayRequest.objects.update_or_create(
+            employee=adam,
+            start_date=date(2026, 4, 6),
+            end_date=date(2026, 4, 10),
+            defaults={
+                "leave_type": HolidayRequest.LeaveType.ANNUAL,
+                "reason": "Family travel",
+                "handover_notes": "Shared deployment notes with the platform squad.",
+                "emergency_contact": "+212600000000",
+                "hr_status": HolidayRequest.ReviewStatus.APPROVED,
+                "hr_reviewed_by": admin_user,
+                "ceo_status": HolidayRequest.ReviewStatus.PENDING,
+            },
+        )
+
+        EmployeeSanction.objects.update_or_create(
+            employee=adam,
+            subject="Late project handoff",
+            defaults={
+                "sanction_type": EmployeeSanction.SanctionType.WARNING,
+                "details": "Project documentation was delivered after the agreed deadline.",
+                "issued_on": date(2026, 2, 12),
+                "issued_by": admin_user,
+            },
+        )
+
+        WorkedHourLog.objects.update_or_create(
+            employee=adam,
+            work_date=date(2026, 3, 18),
+            defaults={
+                "scheduled_hours": Decimal("8.00"),
+                "worked_hours": Decimal("10.50"),
+                "notes": "Production release support.",
+                "recorded_by": sara.user,
+            },
+        )
+
         self.stdout.write(self.style.SUCCESS("Demo data created."))
-        self.stdout.write("Users: hradmin / ChangeMe123!, hruser / ChangeMe123!, itadmin / ChangeMe123!")
+        self.stdout.write("Users: hradmin / ChangeMe123!, hruser / ChangeMe123!, ceo / ChangeMe123!, itadmin / ChangeMe123!")
         self.stdout.write("Demo employees: sara.bennani@ytech.local / WelcomeEmployee123! (same password for seeded employees)")

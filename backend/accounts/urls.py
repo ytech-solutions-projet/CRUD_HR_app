@@ -6,6 +6,8 @@ from .views import (
     AccountAccessUpdateView,
     DatabaseOverviewView,
     EmailLoginView,
+    EmployeeHolidayRequestCreateView,
+    EmployeeSanctionListView,
     EmployeeSelfServiceView,
 )
 
@@ -31,4 +33,6 @@ urlpatterns = [
     path("accounts/access/<int:pk>/", AccountAccessUpdateView.as_view(), name="account-access-update"),
     path("database/", DatabaseOverviewView.as_view(), name="database-overview"),
     path("me/", EmployeeSelfServiceView.as_view(), name="employee-self-service"),
+    path("me/holiday-request/", EmployeeHolidayRequestCreateView.as_view(), name="employee-holiday-request"),
+    path("me/sanctions/", EmployeeSanctionListView.as_view(), name="employee-sanctions"),
 ]

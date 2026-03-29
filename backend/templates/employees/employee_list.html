@@ -9,9 +9,14 @@
         <h2>Employee Directory</h2>
         <p>Search, review, and maintain staff records without exposing the system to the public internet.</p>
     </div>
-    {% if can_manage_employees %}
-    <a href="{% url 'employee-create' %}" class="button-link">Add Employee</a>
-    {% endif %}
+    <div class="button-row">
+        {% if can_review_holiday_requests %}
+        <a href="{% url 'employee-leave-queue' %}" class="secondary-link">Leave Queue ({{ pending_holiday_requests }})</a>
+        {% endif %}
+        {% if can_manage_employees %}
+        <a href="{% url 'employee-create' %}" class="button-link">Add Employee</a>
+        {% endif %}
+    </div>
 </section>
 
 <section class="stats-grid">
