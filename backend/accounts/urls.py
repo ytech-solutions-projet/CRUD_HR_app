@@ -2,6 +2,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
 from .views import (
+    AccountDeleteView,
     AccountAccessListView,
     AccountAccessUpdateView,
     DatabaseOverviewView,
@@ -31,6 +32,7 @@ urlpatterns = [
     ),
     path("accounts/access/", AccountAccessListView.as_view(), name="account-access-list"),
     path("accounts/access/<int:pk>/", AccountAccessUpdateView.as_view(), name="account-access-update"),
+    path("accounts/access/<int:pk>/delete/", AccountDeleteView.as_view(), name="account-access-delete"),
     path("database/", DatabaseOverviewView.as_view(), name="database-overview"),
     path("me/", EmployeeSelfServiceView.as_view(), name="employee-self-service"),
     path("me/holiday-request/", EmployeeHolidayRequestCreateView.as_view(), name="employee-holiday-request"),

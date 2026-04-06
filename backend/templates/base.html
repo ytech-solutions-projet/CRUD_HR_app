@@ -22,7 +22,7 @@
                 {% if can_review_holiday_requests %}
                 <a href="{% url 'employee-leave-queue' %}">Leave Requests</a>
                 {% endif %}
-                {% if can_manage_account_privileges %}
+                {% if can_access_account_directory %}
                 <a href="{% url 'account-access-list' %}">Account Access</a>
                 {% endif %}
                 {% if can_view_database %}

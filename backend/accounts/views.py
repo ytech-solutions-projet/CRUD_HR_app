@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
-from django.db import connections
+from django.db import connections, transaction
 from django.http import HttpRequest, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, RedirectView, TemplateView, UpdateView
@@ -14,6 +14,8 @@ from employees.access import (
     PRIVILEGE_GROUP_DETAILS,
     PRIVILEGE_GROUP_ORDER,
     ensure_privilege_groups,
+    user_can_access_account_directory,
+    user_can_delete_accounts,
     user_can_manage_account_privileges,
     user_can_view_employee_directory,
 )
@@ -44,6 +46,33 @@ def log_account_access_update(request: HttpRequest, target_user):
     )
 
 
+def log_account_access_delete(
+    request: HttpRequest,
+    *,
+    target_id: int,
+    target_username: str,
+    target_email: str,
+    privileges: list[str],
+    linked_employee_code: str | None,
+):
+    details = {
+        "target_username": target_username,
+        "target_email": target_email,
+        "privileges": privileges,
+    }
+    if linked_employee_code:
+        details["linked_employee_code"] = linked_employee_code
+
+    AuditLog.objects.create(
+        actor_username=request.user.get_username() or "anonymous",
+        action_type=AuditLog.ActionType.DELETE,
+        target_table="auth_user",
+        target_id=target_id,
+        source_ip=get_client_ip(request),
+        details=details,
+    )
+
+
 def log_employee_self_service_event(
     request: HttpRequest,
     action_type: str,
@@ -62,13 +91,33 @@ def log_employee_self_service_event(
     )
 
 
-class AccountPrivilegeRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+class AccountDirectoryRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        return user_can_access_account_directory(self.request.user)
+
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            raise PermissionDenied("You do not have permission to access account management.")
+        return super().handle_no_permission()
+
+
+class AccountPrivilegeRequiredMixin(AccountDirectoryRequiredMixin):
     def test_func(self):
         return user_can_manage_account_privileges(self.request.user)
 
     def handle_no_permission(self):
         if self.request.user.is_authenticated:
             raise PermissionDenied("You do not have permission to manage account privileges.")
+        return super().handle_no_permission()
+
+
+class AccountDeleteRequiredMixin(AccountDirectoryRequiredMixin):
+    def test_func(self):
+        return user_can_delete_accounts(self.request.user)
+
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            raise PermissionDenied("You do not have permission to delete sign-in accounts.")
         return super().handle_no_permission()
 
 
@@ -97,7 +146,7 @@ class HomeRedirectView(RedirectView):
         return reverse("employee-self-service")
 
 
-class AccountAccessListView(AccountPrivilegeRequiredMixin, ListView):
+class AccountAccessListView(AccountDirectoryRequiredMixin, ListView):
     model = get_user_model()
     template_name = "accounts/account_access_list.html"
     context_object_name = "account_rows"
@@ -113,6 +162,8 @@ class AccountAccessListView(AccountPrivilegeRequiredMixin, ListView):
         context["role_details"] = [
             (group_name, PRIVILEGE_GROUP_DETAILS[group_name]) for group_name in PRIVILEGE_GROUP_ORDER
         ]
+        context["can_manage_account_privileges"] = user_can_manage_account_privileges(self.request.user)
+        context["can_delete_accounts"] = user_can_delete_accounts(self.request.user)
         context["account_rows"] = [
             {
                 "user": account,
@@ -154,6 +205,71 @@ class AccountAccessUpdateView(AccountPrivilegeRequiredMixin, UpdateView):
         log_account_access_update(self.request, self.object)
         messages.success(self.request, "Account privileges updated successfully.")
         return HttpResponseRedirect(self.get_success_url())
+
+
+class AccountDeleteView(AccountDeleteRequiredMixin, DetailView):
+    model = get_user_model()
+    template_name = "accounts/account_confirm_delete.html"
+    context_object_name = "account"
+    success_url = reverse_lazy("account-access-list")
+
+    def get_object(self, queryset=None):
+        if hasattr(self, "_cached_object"):
+            return self._cached_object
+        self._cached_object = super().get_object(queryset)
+        return self._cached_object
+
+    def get_linked_employee(self):
+        try:
+            return self.get_object().employee_profile
+        except Employee.DoesNotExist:
+            return None
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.pk == self.get_object().pk:
+            messages.error(request, "You cannot delete your own account while signed in.")
+            return HttpResponseRedirect(self.success_url)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["linked_employee"] = self.get_linked_employee()
+        context["privileges"] = list(
+            self.object.groups.filter(name__in=PRIVILEGE_GROUP_ORDER).values_list("name", flat=True)
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        account = self.get_object()
+        linked_employee = self.get_linked_employee()
+        privileges = list(
+            account.groups.filter(name__in=PRIVILEGE_GROUP_ORDER).values_list("name", flat=True)
+        )
+        linked_employee_code = linked_employee.employee_code if linked_employee else None
+        account_id = account.pk
+        account_username = account.get_username()
+        account_email = account.email
+
+        with transaction.atomic():
+            account.delete()
+            log_account_access_delete(
+                request,
+                target_id=account_id,
+                target_username=account_username,
+                target_email=account_email,
+                privileges=privileges,
+                linked_employee_code=linked_employee_code,
+            )
+
+        messages.success(
+            request,
+            (
+                "Account deleted permanently. The linked employee profile was kept."
+                if linked_employee
+                else "Account deleted permanently."
+            ),
+        )
+        return HttpResponseRedirect(self.success_url)
 
 
 class DatabaseOverviewView(AccountPrivilegeRequiredMixin, TemplateView):
@@ -265,7 +381,7 @@ class EmployeeHolidayRequestCreateView(LoginRequiredMixin, CreateView):
         )
         messages.success(
             self.request,
-            "Holiday request submitted. It is now waiting for HR and CEO approval.",
+            "Holiday request submitted. HR reviews first, then the CEO gives the final approval.",
         )
         return HttpResponseRedirect(reverse("employee-self-service"))
 

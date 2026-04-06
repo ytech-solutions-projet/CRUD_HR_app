@@ -291,6 +291,10 @@ class HolidayRequestReviewView(GroupRequiredMixin, View):
             messages.info(request, "This approval step has already been completed.")
             return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 
+        if role == "ceo" and holiday_request.hr_status != HolidayRequest.ReviewStatus.APPROVED:
+            messages.info(request, "CEO review becomes available only after HR approval.")
+            return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
+
         holiday_request.apply_review(role, request.user, decision)
         holiday_request.save(update_fields=update_fields)
         log_audit_event(

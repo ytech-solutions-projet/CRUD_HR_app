@@ -7,7 +7,13 @@
     <div>
         <p class="eyebrow">Privilege Control</p>
         <h2>Account Access</h2>
+        {% if can_manage_account_privileges and can_delete_accounts %}
+        <p>Assign workspace privileges and permanently remove sign-in accounts without opening Django admin.</p>
+        {% elif can_manage_account_privileges %}
         <p>Assign workspace privileges to specific accounts without opening Django admin.</p>
+        {% else %}
+        <p>Review sign-in accounts and permanently remove them when access must be revoked.</p>
+        {% endif %}
     </div>
 </section>
 
@@ -47,7 +53,15 @@
                     {% endif %}
                 </td>
                 <td class="actions">
+                    {% if can_manage_account_privileges %}
                     <a href="{% url 'account-access-update' row.user.pk %}">Manage Privileges</a>
+                    {% endif %}
+                    {% if can_delete_accounts and row.user.pk != request.user.pk %}
+                    <a href="{% url 'account-access-delete' row.user.pk %}" class="danger-link">Delete Account</a>
+                    {% endif %}
+                    {% if can_delete_accounts and row.user.pk == request.user.pk %}
+                    <span class="muted-label">Current account</span>
+                    {% endif %}
                 </td>
             </tr>
             {% empty %}

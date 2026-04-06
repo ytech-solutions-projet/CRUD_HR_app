@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Delete {{ account.username }} | Ytech HR{% endblock %}
+
+{% block content %}
+<section class="delete-panel">
+    <p class="eyebrow">Permanent Removal</p>
+    <h2>Delete {{ account.username }}?</h2>
+    <p>This permanently removes the sign-in account. It cannot be undone from this workspace.</p>
+    {% if linked_employee %}
+    <p>The employee profile for {{ linked_employee.first_name }} {{ linked_employee.last_name }} will stay in the system, but it will no longer be linked to this account.</p>
+    {% endif %}
+
+    <div class="detail-grid">
+        <article>
+            <strong>Username</strong>
+            <span>{{ account.username }}</span>
+        </article>
+        <article>
+            <strong>Email</strong>
+            <span>{{ account.email|default:"-" }}</span>
+        </article>
+        <article>
+            <strong>Privileges</strong>
+            <span>{% if privileges %}{{ privileges|join:", " }}{% else %}No special privileges{% endif %}</span>
+        </article>
+        <article>
+            <strong>Linked employee</strong>
+            <span>{% if linked_employee %}{{ linked_employee.employee_code }}{% else %}None{% endif %}</span>
+        </article>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="button-row">
+            <button type="submit" class="danger-button">Delete account permanently</button>
+            <a href="{% url 'account-access-list' %}" class="secondary-link">Back</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

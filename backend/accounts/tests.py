@@ -88,7 +88,7 @@ class EmployeeSelfServiceTests(TestCase):
         request = HolidayRequest.objects.get(employee=self.employee)
         self.assertEqual(request.hr_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertEqual(request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
-        self.assertContains(response, "waiting for HR and CEO approval")
+        self.assertContains(response, "HR reviews first, then the CEO gives the final approval")
         self.assertContains(response, "April 6, 2026 to April 8, 2026")
 
     def test_employee_can_view_warnings_and_surplus_hours(self):
@@ -132,6 +132,7 @@ class AccountPrivilegeManagementTests(TestCase):
         cls.hr_user_group = Group.objects.create(name="HR User")
         cls.ceo_group = Group.objects.create(name="CEO")
         cls.it_admin_group = Group.objects.create(name="IT Admin")
+        cls.department = Department.objects.create(name="Security")
 
         cls.hr_admin_user = User.objects.create_user(
             username="hradmin",
@@ -157,6 +158,18 @@ class AccountPrivilegeManagementTests(TestCase):
             last_name="Alaoui",
             is_staff=False,
         )
+        cls.linked_employee = Employee.objects.create(
+            employee_code="YTHR-0301",
+            user=cls.target_user,
+            first_name="Samir",
+            last_name="Alaoui",
+            email="samir.alaoui@ytech.local",
+            department=cls.department,
+            position_title="Security Analyst",
+            salary=Decimal("14500.00"),
+            hire_date=date(2024, 9, 2),
+            employment_status=Employee.EmploymentStatus.ACTIVE,
+        )
 
     def test_hr_admin_can_open_account_access_pages(self):
         self.client.force_login(self.hr_admin_user)
@@ -171,14 +184,18 @@ class AccountPrivilegeManagementTests(TestCase):
         self.assertContains(edit_response, "Assigned privileges")
         self.assertContains(edit_response, "CEO")
 
-    def test_non_hr_admin_cannot_manage_account_privileges(self):
+    def test_it_admin_can_open_account_access_list_but_not_manage_privileges(self):
         self.client.force_login(self.it_admin_user)
 
         list_response = self.client.get(reverse("account-access-list"))
         edit_response = self.client.get(reverse("account-access-update", args=[self.target_user.pk]))
+        delete_response = self.client.get(reverse("account-access-delete", args=[self.target_user.pk]))
 
-        self.assertEqual(list_response.status_code, 403)
+        self.assertEqual(list_response.status_code, 200)
+        self.assertContains(list_response, reverse("account-access-delete", args=[self.target_user.pk]))
+        self.assertNotContains(list_response, "Manage Privileges")
         self.assertEqual(edit_response.status_code, 403)
+        self.assertEqual(delete_response.status_code, 200)
 
     def test_hr_admin_can_view_database_overview(self):
         department = Department.objects.create(name="Finance")
@@ -242,3 +259,29 @@ class AccountPrivilegeManagementTests(TestCase):
         )
         self.hr_admin_user.refresh_from_db()
         self.assertIn("HR Admin", self.hr_admin_user.groups.values_list("name", flat=True))
+
+    def test_it_admin_can_delete_account_completely(self):
+        self.client.force_login(self.it_admin_user)
+
+        response = self.client.post(
+            reverse("account-access-delete", args=[self.target_user.pk]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("account-access-list"))
+        self.assertFalse(User.objects.filter(pk=self.target_user.pk).exists())
+        self.linked_employee.refresh_from_db()
+        self.assertIsNone(self.linked_employee.user)
+        self.assertContains(response, "Account deleted permanently. The linked employee profile was kept.")
+
+    def test_it_admin_cannot_delete_their_own_account(self):
+        self.client.force_login(self.it_admin_user)
+
+        response = self.client.post(
+            reverse("account-access-delete", args=[self.it_admin_user.pk]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("account-access-list"))
+        self.assertTrue(User.objects.filter(pk=self.it_admin_user.pk).exists())
+        self.assertContains(response, "You cannot delete your own account while signed in.")
