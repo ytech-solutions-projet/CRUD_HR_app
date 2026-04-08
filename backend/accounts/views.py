@@ -1,10 +1,9 @@
 from django.contrib import messages
-from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
-from django.db import connections, transaction
+from django.db import transaction
 from django.http import HttpRequest, HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, RedirectView, TemplateView, UpdateView
@@ -20,7 +19,7 @@ from employees.access import (
     user_can_view_employee_directory,
 )
 from employees.forms import HolidayRequestForm
-from employees.models import AuditLog, Department, Employee, HolidayRequest
+from employees.models import AuditLog, Employee, HolidayRequest
 
 
 def get_client_ip(request: HttpRequest) -> str | None:
@@ -275,39 +274,13 @@ class AccountDeleteView(AccountDeleteRequiredMixin, DetailView):
 class DatabaseOverviewView(AccountPrivilegeRequiredMixin, TemplateView):
     template_name = "accounts/database_overview.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user_model = get_user_model()
-        default_connection = connections["default"]
-        database_settings = default_connection.settings_dict
+    def test_func(self):
+        return False
 
-        accounts = list(user_model.objects.prefetch_related("groups").order_by("username")[:20])
-        context["database_summary"] = {
-            "engine": database_settings.get("ENGINE", ""),
-            "name": str(database_settings.get("NAME", "")),
-            "host": database_settings.get("HOST") or "local file",
-            "port": database_settings.get("PORT") or "-",
-        }
-        context["table_counts"] = {
-            "departments": Department.objects.count(),
-            "employees": Employee.objects.count(),
-            "accounts": user_model.objects.count(),
-            "groups": Group.objects.count(),
-            "audit_logs": AuditLog.objects.count(),
-        }
-        context["departments"] = Department.objects.order_by("name")
-        context["employees"] = Employee.objects.select_related("department", "user").order_by("last_name", "first_name")[:20]
-        context["accounts"] = [
-            {
-                "user": account,
-                "privileges": list(
-                    account.groups.filter(name__in=PRIVILEGE_GROUP_ORDER).values_list("name", flat=True)
-                ),
-            }
-            for account in accounts
-        ]
-        context["audit_logs"] = AuditLog.objects.order_by("-created_at")[:20]
-        return context
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            raise PermissionDenied("Database overview is disabled.")
+        return super().handle_no_permission()
 
 
 class EmployeeSelfServiceView(LoginRequiredMixin, DetailView):
@@ -381,7 +354,7 @@ class EmployeeHolidayRequestCreateView(LoginRequiredMixin, CreateView):
         )
         messages.success(
             self.request,
-            "Holiday request submitted. HR reviews first, then the CEO gives the final approval.",
+            "Holiday request submitted. HR Admin reviews first, then the CEO gives the final approval.",
         )
         return HttpResponseRedirect(reverse("employee-self-service"))
 

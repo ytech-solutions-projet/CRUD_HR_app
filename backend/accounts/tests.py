@@ -88,7 +88,7 @@ class EmployeeSelfServiceTests(TestCase):
         request = HolidayRequest.objects.get(employee=self.employee)
         self.assertEqual(request.hr_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertEqual(request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
-        self.assertContains(response, "HR reviews first, then the CEO gives the final approval")
+        self.assertContains(response, "HR Admin reviews first, then the CEO gives the final approval")
         self.assertContains(response, "April 6, 2026 to April 8, 2026")
 
     def test_employee_can_view_warnings_and_surplus_hours(self):
@@ -184,7 +184,7 @@ class AccountPrivilegeManagementTests(TestCase):
         self.assertContains(edit_response, "Assigned privileges")
         self.assertContains(edit_response, "CEO")
 
-    def test_it_admin_can_open_account_access_list_but_not_manage_privileges(self):
+    def test_it_admin_can_open_account_access_pages(self):
         self.client.force_login(self.it_admin_user)
 
         list_response = self.client.get(reverse("account-access-list"))
@@ -193,38 +193,29 @@ class AccountPrivilegeManagementTests(TestCase):
 
         self.assertEqual(list_response.status_code, 200)
         self.assertContains(list_response, reverse("account-access-delete", args=[self.target_user.pk]))
-        self.assertNotContains(list_response, "Manage Privileges")
-        self.assertEqual(edit_response.status_code, 403)
+        self.assertContains(list_response, reverse("account-access-update", args=[self.target_user.pk]))
+        self.assertEqual(edit_response.status_code, 200)
+        self.assertContains(edit_response, "Assigned privileges")
         self.assertEqual(delete_response.status_code, 200)
 
-    def test_hr_admin_can_view_database_overview(self):
-        department = Department.objects.create(name="Finance")
-        Employee.objects.create(
-            employee_code="YTHR-9999",
-            first_name="Lina",
-            last_name="Tahiri",
-            email="tahiri.lina@ytech.local",
-            department=department,
-            position_title="Analyst",
-            salary=Decimal("12000.00"),
-            hire_date=date(2024, 5, 1),
-            employment_status=Employee.EmploymentStatus.ACTIVE,
-        )
+    def test_database_overview_is_disabled_for_privileged_users(self):
         self.client.force_login(self.hr_admin_user)
 
-        response = self.client.get(reverse("database-overview"))
+        hr_response = self.client.get(reverse("database-overview"))
+        self.assertEqual(hr_response.status_code, 403)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Database Overview")
-        self.assertContains(response, "tahiri.lina@ytech.local")
-        self.assertContains(response, self.target_user.username)
+        self.client.force_login(self.it_admin_user)
+        it_response = self.client.get(reverse("database-overview"))
+        self.assertEqual(it_response.status_code, 403)
 
-    def test_non_hr_admin_cannot_view_database_overview(self):
+    def test_navigation_hides_database_and_admin_links(self):
         self.client.force_login(self.it_admin_user)
 
-        response = self.client.get(reverse("database-overview"))
+        response = self.client.get(reverse("account-access-list"))
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, reverse("database-overview"))
+        self.assertNotContains(response, "/admin/")
 
     def test_hr_admin_can_assign_privileges_to_an_account(self):
         self.client.force_login(self.hr_admin_user)
@@ -242,6 +233,21 @@ class AccountPrivilegeManagementTests(TestCase):
             self.target_user.groups.values_list("name", flat=True),
             ["HR User", "IT Admin"],
         )
+        self.assertContains(response, "Account privileges updated successfully.")
+
+    def test_it_admin_can_assign_privileges_to_an_account(self):
+        self.client.force_login(self.it_admin_user)
+
+        response = self.client.post(
+            reverse("account-access-update", args=[self.target_user.pk]),
+            {"privilege_groups": ["CEO"]},
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("account-access-list"))
+        self.target_user.refresh_from_db()
+        self.assertTrue(self.target_user.is_staff)
+        self.assertCountEqual(self.target_user.groups.values_list("name", flat=True), ["CEO"])
         self.assertContains(response, "Account privileges updated successfully.")
 
     def test_hr_admin_cannot_remove_their_own_hr_admin_privilege(self):

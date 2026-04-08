@@ -7,7 +7,7 @@
     <div>
         <p class="eyebrow">Approval Dashboard</p>
         <h2>Holiday requests</h2>
-        <p>Each request stays pending until HR approves it and the CEO confirms it.</p>
+        <p>Each request stays pending until the HR Admin approves it and the CEO confirms it.</p>
     </div>
     <div class="button-row">
         <a href="{% url 'employee-list' %}" class="secondary-link">Back to Employees</a>
@@ -64,13 +64,13 @@
                         {% csrf_token %}
                         <input type="hidden" name="decision" value="approve">
                         <input type="hidden" name="next" value="{% url 'employee-leave-queue' %}">
-                        <button type="submit">Approve as HR</button>
+                        <button type="submit">Approve as HR Admin</button>
                     </form>
                     <form method="post" action="{% url 'holiday-request-review' request.pk 'hr' %}" class="inline-form">
                         {% csrf_token %}
                         <input type="hidden" name="decision" value="reject">
                         <input type="hidden" name="next" value="{% url 'employee-leave-queue' %}">
-                        <button type="submit" class="danger-button">Reject as HR</button>
+                        <button type="submit" class="danger-button">Reject as HR Admin</button>
                     </form>
                     {% endif %}
                     {% if can_review_as_ceo and request.hr_status == "APPROVED" and request.ceo_status == "PENDING" and request.overall_status == "PENDING" %}
@@ -88,7 +88,7 @@
                     </form>
                     {% endif %}
                     {% if can_review_as_ceo and request.hr_status == "PENDING" and request.ceo_status == "PENDING" %}
-                    <span class="muted-label">Waiting for HR review</span>
+                    <span class="muted-label">Waiting for HR Admin review</span>
                     {% endif %}
                     {% if request.hr_status != "PENDING" and request.ceo_status != "PENDING" or request.overall_status == "REJECTED" %}
                     <span class="muted-label">Completed</span>

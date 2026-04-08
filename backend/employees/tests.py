@@ -210,7 +210,7 @@ class EmployeePermissionTests(TestCase):
         self.assertEqual(self.employee.email, generate_employee_email("Nadia", "Bennani", self.employee))
         self.assertEqual(self.employee.user.username, self.employee.email)
 
-    def test_hr_and_ceo_must_both_approve_holiday_request(self):
+    def test_hr_admin_and_ceo_must_both_approve_holiday_request(self):
         employee_user = User.objects.create_user(
             username="nadia.elidrissi@ytech.local",
             email="nadia.elidrissi@ytech.local",
@@ -225,7 +225,7 @@ class EmployeePermissionTests(TestCase):
             reason="Family commitment",
         )
 
-        self.client.force_login(self.read_only_user)
+        self.client.force_login(self.hr_admin_user)
         hr_response = self.client.post(
             reverse("holiday-request-review", args=[holiday_request.pk, "hr"]),
             {"decision": "approve"},
@@ -250,6 +250,26 @@ class EmployeePermissionTests(TestCase):
         self.assertEqual(holiday_request.ceo_status, HolidayRequest.ReviewStatus.APPROVED)
         self.assertEqual(holiday_request.overall_status, HolidayRequest.ReviewStatus.APPROVED)
 
+    def test_hr_user_cannot_access_or_review_holiday_requests(self):
+        holiday_request = HolidayRequest.objects.create(
+            employee=self.employee,
+            start_date=date(2026, 4, 16),
+            end_date=date(2026, 4, 18),
+            reason="Personal trip",
+        )
+
+        self.client.force_login(self.read_only_user)
+        queue_response = self.client.get(reverse("employee-leave-queue"))
+        review_response = self.client.post(
+            reverse("holiday-request-review", args=[holiday_request.pk, "hr"]),
+            {"decision": "approve"},
+        )
+
+        self.assertEqual(queue_response.status_code, 403)
+        self.assertEqual(review_response.status_code, 403)
+        holiday_request.refresh_from_db()
+        self.assertEqual(holiday_request.hr_status, HolidayRequest.ReviewStatus.PENDING)
+
     def test_ceo_cannot_review_holiday_request_before_hr_approval(self):
         holiday_request = HolidayRequest.objects.create(
             employee=self.employee,
@@ -269,7 +289,7 @@ class EmployeePermissionTests(TestCase):
         holiday_request.refresh_from_db()
         self.assertEqual(holiday_request.hr_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertEqual(holiday_request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
-        self.assertContains(response, "CEO review becomes available only after HR approval.")
+        self.assertContains(response, "CEO review becomes available only after HR Admin approval.")
 
     def test_hr_can_record_sanctions_and_surplus_hours(self):
         self.client.force_login(self.hr_admin_user)

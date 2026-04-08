@@ -9,6 +9,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, UpdateView, View
 
 from .access import (
+    HOLIDAY_REVIEW_GROUPS,
     HR_OPERATION_GROUPS,
     READ_GROUPS,
     SUSPEND_GROUPS,
@@ -218,7 +219,7 @@ class HolidayRequestQueueView(GroupRequiredMixin, ListView):
     template_name = "employees/holiday_request_queue.html"
     context_object_name = "holiday_requests"
     paginate_by = 20
-    allowed_groups = HR_OPERATION_GROUPS
+    allowed_groups = HOLIDAY_REVIEW_GROUPS
 
     def get_queryset(self):
         return HolidayRequest.objects.select_related(
@@ -254,7 +255,7 @@ class HolidayRequestQueueView(GroupRequiredMixin, ListView):
 
 
 class HolidayRequestReviewView(GroupRequiredMixin, View):
-    allowed_groups = HR_OPERATION_GROUPS
+    allowed_groups = HOLIDAY_REVIEW_GROUPS
 
     def post(self, request, *args, **kwargs):
         holiday_request = get_object_or_404(
@@ -272,7 +273,7 @@ class HolidayRequestReviewView(GroupRequiredMixin, View):
 
         if role == "hr":
             if not user_can_review_holiday_as_hr(request.user):
-                raise PermissionDenied("You do not have HR approval access.")
+                raise PermissionDenied("You do not have HR admin approval access.")
             current_status = holiday_request.hr_status
             update_fields = ["hr_status", "hr_reviewed_by", "hr_reviewed_at", "updated_at"]
         elif role == "ceo":
@@ -292,7 +293,7 @@ class HolidayRequestReviewView(GroupRequiredMixin, View):
             return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 
         if role == "ceo" and holiday_request.hr_status != HolidayRequest.ReviewStatus.APPROVED:
-            messages.info(request, "CEO review becomes available only after HR approval.")
+            messages.info(request, "CEO review becomes available only after HR Admin approval.")
             return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 
         holiday_request.apply_review(role, request.user, decision)
@@ -314,7 +315,7 @@ class HolidayRequestReviewView(GroupRequiredMixin, View):
         if decision == HolidayRequest.ReviewStatus.REJECTED:
             messages.success(request, "Holiday request rejected.")
         elif holiday_request.overall_status == HolidayRequest.ReviewStatus.APPROVED:
-            messages.success(request, "Holiday request fully approved by HR and CEO.")
+            messages.success(request, "Holiday request fully approved by HR Admin and CEO.")
         else:
             messages.success(request, "Approval saved. The request is still waiting for the second approval.")
         return redirect(request.POST.get("next") or reverse("employee-leave-queue"))

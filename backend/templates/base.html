@@ -25,17 +25,11 @@
                 {% if can_access_account_directory %}
                 <a href="{% url 'account-access-list' %}">Account Access</a>
                 {% endif %}
-                {% if can_view_database %}
-                <a href="{% url 'database-overview' %}">Database</a>
-                {% endif %}
                 {% if has_employee_self_service %}
                 <a href="{% url 'employee-self-service' %}">My Profile</a>
                 <a href="{% url 'employee-sanctions' %}">My Warnings</a>
                 {% endif %}
                 <a href="{% url 'password-change' %}">Change Password</a>
-                {% if can_access_admin %}
-                <a href="/admin/">Admin</a>
-                {% endif %}
                 <form method="post" action="{% url 'logout' %}" class="logout-form">
                     {% csrf_token %}
                     <button type="submit" class="secondary-button">Log out</button>

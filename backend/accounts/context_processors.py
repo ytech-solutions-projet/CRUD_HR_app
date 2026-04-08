@@ -32,8 +32,8 @@ def navigation(request):
         "can_access_account_directory": user_can_access_account_directory(user),
         "can_manage_account_privileges": user_can_manage_account_privileges(user),
         "can_delete_accounts": user_can_delete_accounts(user),
-        "can_view_database": user_can_manage_account_privileges(user),
+        "can_view_database": False,
         "can_review_holiday_requests": user_can_review_holiday_requests(user),
         "has_employee_self_service": employee_profile is not None,
-        "can_access_admin": user.is_staff,
+        "can_access_admin": False,
     }

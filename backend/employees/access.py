@@ -1,8 +1,8 @@
 PRIVILEGE_GROUP_DETAILS = {
     "HR User": "Can view, add, and edit employee records and sign-in accounts.",
-    "HR Admin": "Full HR access, including suspending employees and assigning privileges.",
+    "HR Admin": "Full HR access, including suspending employees, approving holiday requests, and assigning privileges.",
     "CEO": "Executive access to review employee activity and co-approve holiday requests.",
-    "IT Admin": "Can support account setup, permanently delete sign-in accounts, and edit employee records without suspend access.",
+    "IT Admin": "Can support account setup, assign account privileges, permanently delete sign-in accounts, and edit employee records without suspend access.",
 }
 PRIVILEGE_GROUP_ORDER = tuple(PRIVILEGE_GROUP_DETAILS)
 
@@ -10,11 +10,13 @@ READ_GROUPS = set(PRIVILEGE_GROUP_ORDER)
 WRITE_GROUPS = {"HR User", "HR Admin", "IT Admin"}
 SUSPEND_GROUPS = {"HR Admin"}
 ACCOUNT_DIRECTORY_GROUPS = {"HR Admin", "IT Admin"}
-ACCOUNT_PRIVILEGE_GROUPS = {"HR Admin"}
+ACCOUNT_PRIVILEGE_GROUPS = {"HR Admin", "IT Admin"}
 ACCOUNT_DELETE_GROUPS = {"IT Admin"}
 HR_REVIEW_GROUPS = {"HR User", "HR Admin"}
+HOLIDAY_HR_REVIEW_GROUPS = {"HR Admin"}
 CEO_REVIEW_GROUPS = {"CEO"}
 HR_OPERATION_GROUPS = HR_REVIEW_GROUPS | CEO_REVIEW_GROUPS
+HOLIDAY_REVIEW_GROUPS = HOLIDAY_HR_REVIEW_GROUPS | CEO_REVIEW_GROUPS
 
 
 def user_has_group(user, groups: set[str]) -> bool:
@@ -46,11 +48,11 @@ def user_can_delete_accounts(user) -> bool:
 
 
 def user_can_review_holiday_requests(user) -> bool:
-    return user_has_group(user, HR_OPERATION_GROUPS)
+    return user_has_group(user, HOLIDAY_REVIEW_GROUPS)
 
 
 def user_can_review_holiday_as_hr(user) -> bool:
-    return user_has_group(user, HR_REVIEW_GROUPS)
+    return user_has_group(user, HOLIDAY_HR_REVIEW_GROUPS)
 
 
 def user_can_review_holiday_as_ceo(user) -> bool:
