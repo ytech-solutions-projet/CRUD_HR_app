@@ -1,16 +1,14 @@
-from django.db import migrations, models
+from django.db import migrations
 
 
-def clear_pending_statuses(apps, schema_editor):
-    HolidayRequest = apps.get_model("employees", "HolidayRequest")
-    HolidayRequest.objects.filter(hr_status="PENDING").update(hr_status=None)
-    HolidayRequest.objects.filter(ceo_status="PENDING").update(ceo_status=None)
-
-
-def restore_pending_statuses(apps, schema_editor):
+def normalize_open_statuses(apps, schema_editor):
     HolidayRequest = apps.get_model("employees", "HolidayRequest")
     HolidayRequest.objects.filter(hr_status__isnull=True).update(hr_status="PENDING")
     HolidayRequest.objects.filter(ceo_status__isnull=True).update(ceo_status="PENDING")
+
+
+def noop_reverse(apps, schema_editor):
+    pass
 
 
 class Migration(migrations.Migration):
@@ -20,25 +18,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="holidayrequest",
-            name="hr_status",
-            field=models.CharField(
-                blank=True,
-                choices=[("APPROVED", "Approved"), ("REJECTED", "Rejected")],
-                max_length=12,
-                null=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="holidayrequest",
-            name="ceo_status",
-            field=models.CharField(
-                blank=True,
-                choices=[("APPROVED", "Approved"), ("REJECTED", "Rejected")],
-                max_length=12,
-                null=True,
-            ),
-        ),
-        migrations.RunPython(clear_pending_statuses, restore_pending_statuses),
+        migrations.RunPython(normalize_open_statuses, noop_reverse),
     ]

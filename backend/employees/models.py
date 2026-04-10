@@ -112,6 +112,7 @@ class HolidayRequest(models.Model):
         PERSONAL = "PERSONAL", "Personal Leave"
 
     class ReviewStatus(models.TextChoices):
+        PENDING = "PENDING", "Pending"
         APPROVED = "APPROVED", "Approved"
         REJECTED = "REJECTED", "Rejected"
 
@@ -125,8 +126,7 @@ class HolidayRequest(models.Model):
     hr_status = models.CharField(
         max_length=12,
         choices=ReviewStatus.choices,
-        null=True,
-        blank=True,
+        default=ReviewStatus.PENDING,
     )
     hr_reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -139,8 +139,7 @@ class HolidayRequest(models.Model):
     ceo_status = models.CharField(
         max_length=12,
         choices=ReviewStatus.choices,
-        null=True,
-        blank=True,
+        default=ReviewStatus.PENDING,
     )
     ceo_reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -174,19 +173,21 @@ class HolidayRequest(models.Model):
         return calculate_business_days(self.start_date, self.end_date)
 
     @property
-    def overall_status(self) -> str | None:
+    def overall_status(self) -> str:
         if self.hr_status == self.ReviewStatus.REJECTED or self.ceo_status == self.ReviewStatus.REJECTED:
             return self.ReviewStatus.REJECTED
         if self.hr_status == self.ReviewStatus.APPROVED or self.ceo_status == self.ReviewStatus.APPROVED:
             return self.ReviewStatus.APPROVED
-        return None
+        return self.ReviewStatus.PENDING
 
     @property
     def is_open(self) -> bool:
-        return self.overall_status is None
+        return self.overall_status == self.ReviewStatus.PENDING
 
     @classmethod
     def get_review_status_label(cls, status: str | None, unresolved_label: str = "Not reviewed") -> str:
+        if status in {None, cls.ReviewStatus.PENDING}:
+            return unresolved_label
         return dict(cls.ReviewStatus.choices).get(status, unresolved_label)
 
     @property

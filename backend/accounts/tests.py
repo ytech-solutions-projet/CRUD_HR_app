@@ -86,8 +86,8 @@ class EmployeeSelfServiceTests(TestCase):
 
         self.assertRedirects(response, reverse("employee-self-service"))
         request = HolidayRequest.objects.get(employee=self.employee)
-        self.assertIsNone(request.hr_status)
-        self.assertIsNone(request.ceo_status)
+        self.assertEqual(request.hr_status, HolidayRequest.ReviewStatus.PENDING)
+        self.assertEqual(request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertContains(
             response,
             "It stays open until the first HR Admin or CEO decision marks it approved or rejected.",

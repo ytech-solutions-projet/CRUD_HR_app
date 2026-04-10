@@ -104,8 +104,8 @@ class EmployeeListView(GroupRequiredMixin, ListView):
         context["can_suspend"] = user_has_group(self.request.user, SUSPEND_GROUPS)
         context["can_review_holiday_requests"] = user_can_review_holiday_requests(self.request.user)
         context["open_holiday_requests"] = HolidayRequest.objects.filter(
-            hr_status__isnull=True,
-            ceo_status__isnull=True,
+            hr_status=HolidayRequest.ReviewStatus.PENDING,
+            ceo_status=HolidayRequest.ReviewStatus.PENDING,
         ).count()
         return context
 
@@ -234,8 +234,8 @@ class HolidayRequestQueueView(GroupRequiredMixin, ListView):
         all_requests = HolidayRequest.objects.all()
         context["request_counts"] = {
             "open": all_requests.filter(
-                hr_status__isnull=True,
-                ceo_status__isnull=True,
+                hr_status=HolidayRequest.ReviewStatus.PENDING,
+                ceo_status=HolidayRequest.ReviewStatus.PENDING,
             ).count(),
             "approved": all_requests.exclude(
                 Q(hr_status=HolidayRequest.ReviewStatus.REJECTED)
@@ -291,7 +291,7 @@ class HolidayRequestReviewView(GroupRequiredMixin, View):
                 messages.info(request, "This holiday request has already been approved.")
             return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 
-        if current_status is not None:
+        if current_status != HolidayRequest.ReviewStatus.PENDING:
             messages.info(request, "This approval step has already been completed.")
             return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 

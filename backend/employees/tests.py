@@ -235,7 +235,7 @@ class EmployeePermissionTests(TestCase):
         self.assertRedirects(hr_response, reverse("employee-leave-queue"))
         holiday_request.refresh_from_db()
         self.assertEqual(holiday_request.hr_status, HolidayRequest.ReviewStatus.APPROVED)
-        self.assertIsNone(holiday_request.ceo_status)
+        self.assertEqual(holiday_request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertEqual(holiday_request.overall_status, HolidayRequest.ReviewStatus.APPROVED)
         self.assertContains(hr_response, "Holiday request approved.")
 
@@ -248,7 +248,7 @@ class EmployeePermissionTests(TestCase):
 
         self.assertRedirects(ceo_response, reverse("employee-leave-queue"))
         holiday_request.refresh_from_db()
-        self.assertIsNone(holiday_request.ceo_status)
+        self.assertEqual(holiday_request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertEqual(holiday_request.overall_status, HolidayRequest.ReviewStatus.APPROVED)
         self.assertContains(ceo_response, "This holiday request has already been approved.")
 
@@ -270,7 +270,7 @@ class EmployeePermissionTests(TestCase):
         self.assertEqual(queue_response.status_code, 403)
         self.assertEqual(review_response.status_code, 403)
         holiday_request.refresh_from_db()
-        self.assertIsNone(holiday_request.hr_status)
+        self.assertEqual(holiday_request.hr_status, HolidayRequest.ReviewStatus.PENDING)
 
     def test_ceo_can_review_holiday_request_before_hr_approval(self):
         holiday_request = HolidayRequest.objects.create(
@@ -293,7 +293,7 @@ class EmployeePermissionTests(TestCase):
 
         self.assertRedirects(response, reverse("employee-leave-queue"))
         holiday_request.refresh_from_db()
-        self.assertIsNone(holiday_request.hr_status)
+        self.assertEqual(holiday_request.hr_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertEqual(holiday_request.ceo_status, HolidayRequest.ReviewStatus.APPROVED)
         self.assertEqual(holiday_request.overall_status, HolidayRequest.ReviewStatus.APPROVED)
         self.assertContains(response, "Holiday request approved.")
