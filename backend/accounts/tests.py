@@ -88,7 +88,10 @@ class EmployeeSelfServiceTests(TestCase):
         request = HolidayRequest.objects.get(employee=self.employee)
         self.assertEqual(request.hr_status, HolidayRequest.ReviewStatus.PENDING)
         self.assertEqual(request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
-        self.assertContains(response, "HR Admin reviews first, then the CEO gives the final approval")
+        self.assertContains(
+            response,
+            "HR Admin and CEO can both review it, and the CEO can act without waiting for HR Admin.",
+        )
         self.assertContains(response, "April 6, 2026 to April 8, 2026")
 
     def test_employee_can_view_warnings_and_surplus_hours(self):

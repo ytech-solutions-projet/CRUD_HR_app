@@ -354,7 +354,7 @@ class EmployeeHolidayRequestCreateView(LoginRequiredMixin, CreateView):
         )
         messages.success(
             self.request,
-            "Holiday request submitted. HR Admin reviews first, then the CEO gives the final approval.",
+            "Holiday request submitted. HR Admin and CEO can both review it, and the CEO can act without waiting for HR Admin.",
         )
         return HttpResponseRedirect(reverse("employee-self-service"))
 
