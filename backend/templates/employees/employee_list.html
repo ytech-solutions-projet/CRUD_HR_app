@@ -11,7 +11,7 @@
     </div>
     <div class="button-row">
         {% if can_review_holiday_requests %}
-        <a href="{% url 'employee-leave-queue' %}" class="secondary-link">Leave Queue ({{ pending_holiday_requests }})</a>
+        <a href="{% url 'employee-leave-queue' %}" class="secondary-link">Leave Queue ({{ open_holiday_requests }})</a>
         {% endif %}
         {% if can_manage_employees %}
         <a href="{% url 'employee-create' %}" class="button-link">Add Employee</a>

@@ -10,11 +10,11 @@
         <p class="subtitle">
             Allowed this year: {{ leave_balance.allowed_days }} days.
             Approved: {{ leave_balance.approved_days }}.
-            Pending: {{ leave_balance.pending_days }}.
+            Requested: {{ leave_balance.requested_days }}.
             Remaining: {{ leave_balance.remaining_days }}.
             Owed: {{ leave_balance.owed_days }}.
         </p>
-        <p class="subtitle">HR Admin and CEO can both review your request. The CEO can approve or reject it without waiting for HR Admin.</p>
+        <p class="subtitle">A leave request stays open until the first HR Admin or CEO decision marks it approved or rejected.</p>
     </div>
 
     <form method="post" class="stacked-form">

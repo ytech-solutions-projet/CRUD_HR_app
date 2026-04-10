@@ -304,10 +304,10 @@ class EmployeeSelfServiceView(LoginRequiredMixin, DetailView):
         context["sanctions"] = self.object.sanctions.select_related("issued_by")[:5]
         context["worked_hour_logs"] = self.object.worked_hour_logs.select_related("recorded_by")[:10]
         context["total_surplus_hours"] = self.object.get_total_surplus_hours()
-        context["pending_holiday_requests_count"] = sum(
+        context["open_holiday_requests_count"] = sum(
             1
             for holiday_request in self.object.holiday_requests.all()
-            if holiday_request.overall_status == HolidayRequest.ReviewStatus.PENDING
+            if holiday_request.is_open
         )
         return context
 
@@ -354,7 +354,7 @@ class EmployeeHolidayRequestCreateView(LoginRequiredMixin, CreateView):
         )
         messages.success(
             self.request,
-            "Holiday request submitted. HR Admin and CEO can both review it, and the CEO can act without waiting for HR Admin.",
+            "Holiday request submitted. It stays open until the first HR Admin or CEO decision marks it approved or rejected.",
         )
         return HttpResponseRedirect(reverse("employee-self-service"))
 

@@ -160,7 +160,9 @@ class Command(BaseCommand):
                 "emergency_contact": "+212600000000",
                 "hr_status": HolidayRequest.ReviewStatus.APPROVED,
                 "hr_reviewed_by": admin_user,
-                "ceo_status": HolidayRequest.ReviewStatus.PENDING,
+                "ceo_status": None,
+                "ceo_reviewed_by": None,
+                "ceo_reviewed_at": None,
             },
         )
 

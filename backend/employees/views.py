@@ -103,9 +103,9 @@ class EmployeeListView(GroupRequiredMixin, ListView):
         context["can_manage_employees"] = user_can_manage_employees(self.request.user)
         context["can_suspend"] = user_has_group(self.request.user, SUSPEND_GROUPS)
         context["can_review_holiday_requests"] = user_can_review_holiday_requests(self.request.user)
-        context["pending_holiday_requests"] = HolidayRequest.objects.filter(
-            Q(hr_status=HolidayRequest.ReviewStatus.PENDING)
-            | Q(ceo_status=HolidayRequest.ReviewStatus.PENDING)
+        context["open_holiday_requests"] = HolidayRequest.objects.filter(
+            hr_status__isnull=True,
+            ceo_status__isnull=True,
         ).count()
         return context
 
@@ -233,16 +233,16 @@ class HolidayRequestQueueView(GroupRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         all_requests = HolidayRequest.objects.all()
         context["request_counts"] = {
-            "pending": all_requests.filter(
-                Q(hr_status=HolidayRequest.ReviewStatus.PENDING)
-                | Q(ceo_status=HolidayRequest.ReviewStatus.PENDING)
-            ).exclude(
+            "open": all_requests.filter(
+                hr_status__isnull=True,
+                ceo_status__isnull=True,
+            ).count(),
+            "approved": all_requests.exclude(
                 Q(hr_status=HolidayRequest.ReviewStatus.REJECTED)
                 | Q(ceo_status=HolidayRequest.ReviewStatus.REJECTED)
-            ).count(),
-            "approved": all_requests.filter(
-                hr_status=HolidayRequest.ReviewStatus.APPROVED,
-                ceo_status=HolidayRequest.ReviewStatus.APPROVED,
+            ).filter(
+                Q(hr_status=HolidayRequest.ReviewStatus.APPROVED)
+                | Q(ceo_status=HolidayRequest.ReviewStatus.APPROVED)
             ).count(),
             "rejected": all_requests.filter(
                 Q(hr_status=HolidayRequest.ReviewStatus.REJECTED)
@@ -284,11 +284,14 @@ class HolidayRequestReviewView(GroupRequiredMixin, View):
         else:
             raise PermissionDenied("Unsupported review role.")
 
-        if holiday_request.overall_status == HolidayRequest.ReviewStatus.REJECTED and current_status == HolidayRequest.ReviewStatus.PENDING:
-            messages.info(request, "This holiday request has already been rejected.")
+        if not holiday_request.is_open:
+            if holiday_request.overall_status == HolidayRequest.ReviewStatus.REJECTED:
+                messages.info(request, "This holiday request has already been rejected.")
+            else:
+                messages.info(request, "This holiday request has already been approved.")
             return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 
-        if current_status != HolidayRequest.ReviewStatus.PENDING:
+        if current_status is not None:
             messages.info(request, "This approval step has already been completed.")
             return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 
@@ -310,10 +313,8 @@ class HolidayRequestReviewView(GroupRequiredMixin, View):
 
         if decision == HolidayRequest.ReviewStatus.REJECTED:
             messages.success(request, "Holiday request rejected.")
-        elif holiday_request.overall_status == HolidayRequest.ReviewStatus.APPROVED:
-            messages.success(request, "Holiday request fully approved by HR Admin and CEO.")
         else:
-            messages.success(request, "Approval saved. The request is still waiting for the second approval.")
+            messages.success(request, "Holiday request approved.")
         return redirect(request.POST.get("next") or reverse("employee-leave-queue"))
 
 

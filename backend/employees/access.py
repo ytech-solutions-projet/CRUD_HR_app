@@ -1,7 +1,7 @@
 PRIVILEGE_GROUP_DETAILS = {
     "HR User": "Can view, add, and edit employee records and sign-in accounts.",
-    "HR Admin": "Full HR access, including suspending employees, approving holiday requests, and assigning privileges.",
-    "CEO": "Executive access to review employee activity and co-approve holiday requests.",
+    "HR Admin": "Full HR access, including suspending employees, reviewing holiday requests, and assigning privileges.",
+    "CEO": "Executive access to review employee activity and decide holiday requests.",
     "IT Admin": "Can support account setup, assign account privileges, permanently delete sign-in accounts, and edit employee records without suspend access.",
 }
 PRIVILEGE_GROUP_ORDER = tuple(PRIVILEGE_GROUP_DETAILS)

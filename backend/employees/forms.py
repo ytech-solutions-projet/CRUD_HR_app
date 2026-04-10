@@ -136,7 +136,7 @@ class HolidayRequestForm(forms.ModelForm):
         if overlapping_requests.exists():
             self.add_error(
                 None,
-                "This leave period overlaps with another request that is still pending or approved.",
+                "This leave period overlaps with another leave request that is still open or already approved.",
             )
         return cleaned_data
 

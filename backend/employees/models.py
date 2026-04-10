@@ -76,14 +76,14 @@ class Employee(models.Model):
     def get_leave_balance(self, year: int | None = None) -> dict[str, int]:
         target_year = year or timezone.localdate().year
         approved_days = 0
-        pending_days = 0
+        requested_days = 0
 
         for request in self.holiday_requests.all():
             request_days = request.business_days_for_year(target_year)
             if request.overall_status == HolidayRequest.ReviewStatus.APPROVED:
                 approved_days += request_days
-            elif request.overall_status == HolidayRequest.ReviewStatus.PENDING:
-                pending_days += request_days
+            elif request.is_open:
+                requested_days += request_days
 
         allowed_days = self.annual_leave_allowance
         owed_days = max(approved_days - allowed_days, 0)
@@ -92,7 +92,7 @@ class Employee(models.Model):
             "year": target_year,
             "allowed_days": allowed_days,
             "approved_days": approved_days,
-            "pending_days": pending_days,
+            "requested_days": requested_days,
             "owed_days": owed_days,
             "remaining_days": remaining_days,
         }
@@ -112,7 +112,6 @@ class HolidayRequest(models.Model):
         PERSONAL = "PERSONAL", "Personal Leave"
 
     class ReviewStatus(models.TextChoices):
-        PENDING = "PENDING", "Pending"
         APPROVED = "APPROVED", "Approved"
         REJECTED = "REJECTED", "Rejected"
 
@@ -126,7 +125,8 @@ class HolidayRequest(models.Model):
     hr_status = models.CharField(
         max_length=12,
         choices=ReviewStatus.choices,
-        default=ReviewStatus.PENDING,
+        null=True,
+        blank=True,
     )
     hr_reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -139,7 +139,8 @@ class HolidayRequest(models.Model):
     ceo_status = models.CharField(
         max_length=12,
         choices=ReviewStatus.choices,
-        default=ReviewStatus.PENDING,
+        null=True,
+        blank=True,
     )
     ceo_reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -173,12 +174,32 @@ class HolidayRequest(models.Model):
         return calculate_business_days(self.start_date, self.end_date)
 
     @property
-    def overall_status(self) -> str:
+    def overall_status(self) -> str | None:
         if self.hr_status == self.ReviewStatus.REJECTED or self.ceo_status == self.ReviewStatus.REJECTED:
             return self.ReviewStatus.REJECTED
-        if self.hr_status == self.ReviewStatus.APPROVED and self.ceo_status == self.ReviewStatus.APPROVED:
+        if self.hr_status == self.ReviewStatus.APPROVED or self.ceo_status == self.ReviewStatus.APPROVED:
             return self.ReviewStatus.APPROVED
-        return self.ReviewStatus.PENDING
+        return None
+
+    @property
+    def is_open(self) -> bool:
+        return self.overall_status is None
+
+    @classmethod
+    def get_review_status_label(cls, status: str | None, unresolved_label: str = "Not reviewed") -> str:
+        return dict(cls.ReviewStatus.choices).get(status, unresolved_label)
+
+    @property
+    def hr_status_label(self) -> str:
+        return self.get_review_status_label(self.hr_status)
+
+    @property
+    def ceo_status_label(self) -> str:
+        return self.get_review_status_label(self.ceo_status)
+
+    @property
+    def overall_status_label(self) -> str:
+        return self.get_review_status_label(self.overall_status, unresolved_label="Open")
 
     def business_days_for_year(self, year: int) -> int:
         year_start = date(year, 1, 1)

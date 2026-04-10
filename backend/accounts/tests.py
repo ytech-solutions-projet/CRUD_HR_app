@@ -86,11 +86,11 @@ class EmployeeSelfServiceTests(TestCase):
 
         self.assertRedirects(response, reverse("employee-self-service"))
         request = HolidayRequest.objects.get(employee=self.employee)
-        self.assertEqual(request.hr_status, HolidayRequest.ReviewStatus.PENDING)
-        self.assertEqual(request.ceo_status, HolidayRequest.ReviewStatus.PENDING)
+        self.assertIsNone(request.hr_status)
+        self.assertIsNone(request.ceo_status)
         self.assertContains(
             response,
-            "HR Admin and CEO can both review it, and the CEO can act without waiting for HR Admin.",
+            "It stays open until the first HR Admin or CEO decision marks it approved or rejected.",
         )
         self.assertContains(response, "April 6, 2026 to April 8, 2026")
 

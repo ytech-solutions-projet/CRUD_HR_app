@@ -48,8 +48,8 @@
         <strong>{{ leave_balance.approved_days }}</strong>
     </article>
     <article>
-        <span>Pending Days</span>
-        <strong>{{ leave_balance.pending_days }}</strong>
+        <span>Requested Days</span>
+        <strong>{{ leave_balance.requested_days }}</strong>
     </article>
     <article>
         <span>Days Left</span>
@@ -92,9 +92,9 @@
                     <tr>
                         <td>{{ request.start_date }} to {{ request.end_date }}</td>
                         <td>{{ request.total_days }}</td>
-                        <td>{{ request.hr_status|lower|capfirst }}</td>
-                        <td>{{ request.ceo_status|lower|capfirst }}</td>
-                        <td>{{ request.overall_status|lower|capfirst }}</td>
+                        <td>{{ request.hr_status_label }}</td>
+                        <td>{{ request.ceo_status_label }}</td>
+                        <td>{{ request.overall_status_label }}</td>
                     </tr>
                     {% empty %}
                     <tr>
